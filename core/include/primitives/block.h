@@ -18,14 +18,18 @@
 
 class Block {
 public:
-    std::shared_ptr<BlockHeader> block_header;
-    std::vector<std::shared_ptr<Transaction>> transactions;
+    std::unique_ptr<BlockHeader> block_header;
+    std::vector<std::unique_ptr<Transaction>> transactions;
 
-    Block(std::shared_ptr<BlockHeader> block_header_, std::vector<std::shared_ptr<Transaction>> transactions_);
-    Block();
+    std::vector<std::unique_ptr<Transaction>> get_transactions();
 
-    static std::string serialize(std::shared_ptr<Block> block);
-    static std::shared_ptr<Block> deserialize(std::string serialized_block);
+    void set_block_header(std::unique_ptr<BlockHeader> block_header_);
+    void set_transactions(std::vector<std::unique_ptr<Transaction>> transactions_);
+
+    Block(std::unique_ptr<BlockHeader> block_header_, std::vector<std::unique_ptr<Transaction>> transactions_);
+
+    static std::string serialize(const Block& block);
+    static std::unique_ptr<Block> deserialize(const std::string& serialized_block);
 };
 
 #endif //RATH_BLOCK_H

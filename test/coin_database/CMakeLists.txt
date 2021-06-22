@@ -8,6 +8,6 @@ file(GLOB SRCS *.cpp)
 include(GoogleTest)
 
 add_executable(test_coin_database ${SRCS})
-target_link_libraries(test_coin_database chain ${GTest_LIBRARIES})
+target_link_libraries(test_coin_database rathDB ${GTest_LIBRARIES})
 
 gtest_add_tests(TARGET test_coin_database TEST_PREFIX "")

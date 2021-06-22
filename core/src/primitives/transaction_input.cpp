@@ -10,10 +10,11 @@
 #include <transaction_input.h>
 #include <rath.pb.h>
 
-TransactionInput::TransactionInput(uint32_t reference_transaction_hash,
-                                   uint8_t utxo_index, uint32_t signature) :
-        reference_transaction_hash(reference_transaction_hash), utxo_index(utxo_index),
-        signature(signature){}
+TransactionInput::TransactionInput(
+        uint32_t reference_transaction_hash, uint8_t utxo_index,
+        uint32_t signature) :
+        reference_transaction_hash(reference_transaction_hash),
+        utxo_index(utxo_index), signature(signature) {}
 
 std::string TransactionInput::serialize(const TransactionInput& transaction_input) {
     PTransactionInput protobuf_transaction_input = PTransactionInput();
@@ -24,13 +25,12 @@ std::string TransactionInput::serialize(const TransactionInput& transaction_inpu
     return serialized_transaction_input;
 }
 
-TransactionInput TransactionInput::deserialize(std::string serialized_transaction_input) {
+std::unique_ptr<TransactionInput> TransactionInput::deserialize(const std::string& serialized_transaction_input) {
     PTransactionInput protobuf_transaction_input = PTransactionInput();
     protobuf_transaction_input.ParseFromString(serialized_transaction_input);
-    TransactionInput transaction_input = TransactionInput(protobuf_transaction_input.reference_transaction_hash(),
-                                                          protobuf_transaction_input.utxo_index(),
-                                                          protobuf_transaction_input.signature());
-    return transaction_input;
+    std::unique_ptr<TransactionInput> transaction_input = std::make_unique<TransactionInput>(protobuf_transaction_input.reference_transaction_hash(),
+                                                                                             protobuf_transaction_input.utxo_index(),
+                                                                                             protobuf_transaction_input.signature());
+    return std::move(transaction_input);
 }
-
 

@@ -24,18 +24,19 @@ class UndoBlock {
 public:
     /// Both of the below vectors shoudl have same size and have corresponding entries.
     /// The CoinLocators for the CoinRecords we want to change
-    std::vector<uint32_t> transaction_hashes;
+    const std::vector<uint32_t> transaction_hashes;
     /// The UndoCoinRecords to roll back the offending Block's changes
-    std::vector<std::shared_ptr<UndoCoinRecord>> undo_coin_records;
+    const std::vector<std::unique_ptr<UndoCoinRecord>> undo_coin_records;
 
-    UndoBlock(std::vector<uint32_t> transaction_hashes_, std::vector<std::shared_ptr<UndoCoinRecord>>  undo_coin_records_);
+    UndoBlock(std::vector<uint32_t> transaction_hashes_,
+              std::vector<std::unique_ptr<UndoCoinRecord>> undo_coin_records_);
 
     /// Serializes an UndoBlock. Necessary to write UndoBlocks to an
     /// "undo" file
-    static std::string serialize(std::shared_ptr<UndoBlock> undo_block);
+    static std::string serialize(const UndoBlock& undo_block);
     /// Deserializes an UndoBlock. Necessary to read UndoBlocks
     /// from an "undo" file
-    static std::shared_ptr<UndoBlock> deserialize(std::string serialized_undo_block);
+    static std::unique_ptr<UndoBlock> deserialize(const std::string& serialized_undo_block);
 };
 
 #endif //RATHDB_UNDO_BLOCK_H

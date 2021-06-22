@@ -27,10 +27,6 @@ public:
 
     /// The Transaction's version number
     const uint8_t version;
-    /// Whether The Transaction is a Coinbase
-    const bool is_coin_base;
-    /// The height of the Block containing the Transaction
-    const uint32_t height;
 
     // The second section of public members holds the
     // Transaction's UTXO information.
@@ -43,7 +39,7 @@ public:
     std::vector<uint32_t> public_keys = {};
 
     ////Constructor for when we need to recreate a CoinRecord
-    UndoCoinRecord(uint8_t version_, bool is_coin_base_, uint32_t height_,
+    UndoCoinRecord(uint8_t version_,
                    std::vector<uint32_t> utxo_, std::vector<uint32_t> amounts_,
                    std::vector<uint32_t> public_keys_);
 };

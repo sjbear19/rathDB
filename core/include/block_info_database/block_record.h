@@ -19,7 +19,7 @@
 class BlockRecord {
 public:
     /// The Block's block header
-    std::shared_ptr<BlockHeader> block_header;
+    const std::unique_ptr<BlockHeader> block_header;
     /// The Block's height (depth) relative to its own chain.
     const uint32_t height;
     /// The Block's number of transactions
@@ -29,7 +29,7 @@ public:
     // for the raw Block on disk.
 
     /// The filename storing the raw Block
-    std::string block_file_stored;
+    const std::string block_file_stored;
     /// The raw Block's starting offset in the file
     uint16_t block_offset_start;
     /// The raw Block's ending offset in the file
@@ -39,7 +39,7 @@ public:
     // for the Block's "undo" protocol
 
     /// The filename storing the "undo" protocol
-    std::string undo_file_stored;
+    const std::string undo_file_stored;
     /// The Block's "undo" protocol starting offset in the file
     uint16_t undo_offset_start;
     /// The Block's "undo" protocol ending offset in the file
@@ -47,15 +47,15 @@ public:
 
     /// Constructor based on a Block, file information for that Block, and file information
     /// to "undo" the Block
-    BlockRecord(std::shared_ptr<BlockHeader> block_header_,
-                uint32_t height_, uint32_t num_transactions_,
-                std::unique_ptr<FileInfo> block_info_,
-                std::unique_ptr<FileInfo> undo_info_);
+    BlockRecord(std::unique_ptr<BlockHeader> block_header_,
+                uint32_t num_transactions_, uint32_t height_,
+                const FileInfo& block_info_, const FileInfo& undo_info_);
 
     /// serialize
-    static std::string serialize(std::shared_ptr<BlockRecord> block_record);
+    static std::string serialize(const BlockRecord& block_record);
     /// deserialize.
-    static std::shared_ptr<BlockRecord> deserialize(const std::string& serialized_block_record);
+    static std::unique_ptr<BlockRecord> deserialize(
+            const std::string& serialized_block_record);
 };
 
 #endif //RATHDB_BLOCK_RECORD_H

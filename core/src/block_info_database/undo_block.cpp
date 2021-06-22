@@ -9,62 +9,60 @@
 
 #include <undo_block.h>
 
-/// Serializes an UndoBlock. Necessary to write UndoBlocks to an
-/// "undo" file
-std::string UndoBlock::serialize(std::shared_ptr<UndoBlock> undo_block) {
-    auto* pundo_block = new PUndoBlock();
+UndoBlock::UndoBlock(
+        std::vector<uint32_t> transaction_hashes_,
+        std::vector<std::unique_ptr<UndoCoinRecord>> undo_coin_records_)
+        : transaction_hashes(std::move(transaction_hashes_)),
+          undo_coin_records(std::move(undo_coin_records_)) {}
 
-    for (int i = 0; i < undo_block->transaction_hashes.size(); i++) {
-        pundo_block->add_transaction_hashes(undo_block->transaction_hashes[i]);
+
+std::string UndoBlock::serialize(const UndoBlock& undo_block) {
+    PUndoBlock pundo_block = PUndoBlock();
+    PUndoCoinRecord* pundo_coin_record;
+    for (int i = 0; i < undo_block.transaction_hashes.size(); i++) {
+        pundo_block.add_transaction_hashes(undo_block.transaction_hashes[i]);
         ///handle undo_coin_record
-        PUndoCoinRecord* pundo_coin_record = pundo_block->add_undo_coin_records();
-        pundo_coin_record->set_version(undo_block->undo_coin_records[i]->version);
-        pundo_coin_record->set_is_coin_base(undo_block->undo_coin_records[i]->is_coin_base);
-        pundo_coin_record->set_height(undo_block->undo_coin_records[i]->height);
-        for (int i = 0; i < undo_block->undo_coin_records[i]->utxo.size(); i++) {
-            pundo_coin_record->add_utxo(undo_block->undo_coin_records[i]->utxo[i]);
-            pundo_coin_record->add_amounts(undo_block->undo_coin_records[i]->amounts[i]);
-            pundo_coin_record->add_public_keys(undo_block->undo_coin_records[i]->public_keys[i]);
+        pundo_coin_record = pundo_block.add_undo_coin_records();
+        pundo_coin_record->set_version(undo_block.undo_coin_records[i]->version);
+        for (int j = 0; j < undo_block.undo_coin_records[i]->utxo.size(); j++) {
+            pundo_coin_record->add_utxo(undo_block.undo_coin_records[i]->utxo[j]);
+            pundo_coin_record->add_amounts(undo_block.undo_coin_records[i]->amounts[j]);
+            pundo_coin_record->add_public_keys(undo_block.undo_coin_records[i]->public_keys[j]);
         }
     }
 
     std::string serialized_undo_block;
-    pundo_block->SerializeToString(&serialized_undo_block);
+    pundo_block.SerializeToString(&serialized_undo_block);
     return serialized_undo_block;
 }
 
-/// Deserializes an UndoBlock. Necessary to read UndoBlocks
-/// from an "undo" file
-std::shared_ptr<UndoBlock> UndoBlock::deserialize(std::string serialized_undo_block) {
-    auto* pundo_block = new PUndoBlock();
+std::unique_ptr<UndoBlock> UndoBlock::deserialize(const std::string& serialized_undo_block) {
+    PUndoBlock pundo_block = PUndoBlock();
 
-    pundo_block->ParseFromString(serialized_undo_block);
+    pundo_block.ParseFromString(serialized_undo_block);
 
     std::vector<uint32_t> transaction_hashes;
-    std::vector<std::shared_ptr<UndoCoinRecord>> undo_coin_records;
+    std::vector<std::unique_ptr<UndoCoinRecord>> undo_coin_records;
 
-    for (int i = 0; i < pundo_block->transaction_hashes_size(); i++) {
-        transaction_hashes.push_back(pundo_block->transaction_hashes(i));
-        PUndoCoinRecord pundo_coin_record = pundo_block->undo_coin_records(i);
+    for (int i = 0; i < pundo_block.transaction_hashes_size(); i++) {
+        transaction_hashes.push_back(pundo_block.transaction_hashes(i));
+        PUndoCoinRecord pundo_coin_record = pundo_block.undo_coin_records(i);
         ///Handle UndoCoinRecord
         std::vector<uint32_t> utxo;
         std::vector<uint32_t> amounts;
         std::vector<uint32_t> public_keys;
-        for (int i = 0; i < pundo_coin_record.utxo_size(); i++) {
-            utxo.push_back(pundo_coin_record.utxo(i));
-            amounts.push_back(pundo_coin_record.amounts(i));
-            public_keys.push_back(pundo_coin_record.public_keys(i));
+        for (int j = 0; j < pundo_coin_record.utxo_size(); j++) {
+            utxo.push_back(pundo_coin_record.utxo(j));
+            amounts.push_back(pundo_coin_record.amounts(j));
+            public_keys.push_back(pundo_coin_record.public_keys(j));
         }
-        std::shared_ptr<UndoCoinRecord> undo_coin_record = std::shared_ptr<UndoCoinRecord>( new UndoCoinRecord(pundo_coin_record.version(),
-                                                                                                               pundo_coin_record.is_coin_base(),
-                                                                                                               pundo_coin_record.height(),
-                                                                                                               utxo,
-                                                                                                               amounts,
-                                                                                                               public_keys));
-        undo_coin_records.push_back(undo_coin_record);
+        std::unique_ptr<UndoCoinRecord> a = std::make_unique<UndoCoinRecord>(pundo_coin_record.version(),
+                                                                             utxo,
+                                                                             amounts,
+                                                                             public_keys);
+        undo_coin_records.push_back(std::move(a));
     }
-
-    std::shared_ptr<UndoBlock> undo_block = std::shared_ptr<UndoBlock>(new UndoBlock(transaction_hashes, undo_coin_records));
-    return undo_block;
+    std::unique_ptr<UndoBlock> undo_block = std::make_unique<UndoBlock>(std::move(transaction_hashes), std::move(undo_coin_records));
+    return std::move(undo_block);
 }
 

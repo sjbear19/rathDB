@@ -7,7 +7,7 @@ file(GLOB SRCS *.cpp)
 
 include(GoogleTest)
 
-add_executable(test_chain ${SRCS})
-target_link_libraries(test_chain rathDB ${GTest_LIBRARIES})
+add_executable(test_crypto ${SRCS})
+target_link_libraries(test_crypto crypto ${GTest_LIBRARIES})
 
-gtest_add_tests(TARGET test_chain TEST_PREFIX "")
+gtest_add_tests(TARGET test_crypto TEST_PREFIX "")

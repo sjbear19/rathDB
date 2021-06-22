@@ -16,12 +16,10 @@ class Coin {
 public:
     /// Unspent TransactionOutput
     std::unique_ptr<TransactionOutput> transaction_output;
-    /// Whether or not this TransactionOutput's containing Transaction is a coinbase
-    bool is_coin_base;
-    /// height of containing Transaction's Block
-    uint32_t height;
+    bool is_spent;
 
-    Coin(std::unique_ptr<TransactionOutput> transaction_output_, bool is_coin_base_, uint32_t height_);
+    Coin(std::unique_ptr<TransactionOutput> transaction_output_,
+         bool is_spent_);
 };
 
 #endif //RATHDB_STENCIL_COIN_H

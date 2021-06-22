@@ -8,6 +8,6 @@ file(GLOB SRCS *.cpp)
 include(GoogleTest)
 
 add_executable(test_chain_writer ${SRCS})
-target_link_libraries(test_chain_writer chain ${GTest_LIBRARIES})
+target_link_libraries(test_chain_writer rathDB ${GTest_LIBRARIES})
 
 gtest_add_tests(TARGET test_chain_writer TEST_PREFIX "")

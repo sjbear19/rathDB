@@ -24,7 +24,7 @@ private:
     /// The length (in blocks) of the active chain.
     uint32_t _active_chain_length;
     /// The last block of the active chain.
-    std::shared_ptr<Block> _active_chain_last_block;
+    std::unique_ptr<Block> _active_chain_last_block;
 
     // The second section of private members keeps track of
     // the managing of block data.
@@ -41,13 +41,13 @@ private:
     std::unique_ptr<CoinDatabase> _coin_database;
 
     /// Makes the genesis block.
-    static std::shared_ptr<Block> construct_genesis_block();
+    static std::unique_ptr<Block> construct_genesis_block();
 
     /// gets forked blocks on a chain in a stack-like order
     std::vector<std::shared_ptr<Block>> get_forked_blocks_stack(uint32_t starting_hash);
 
     /// gets all undo blocks on main chain to a specific height
-    std::vector<std::shared_ptr<UndoBlock>> get_undo_blocks_queue(uint32_t branching_height);
+    std::vector<std::unique_ptr<UndoBlock>> get_undo_blocks_queue(uint32_t branching_height);
 
 public:
     // The first section of public functions constructs a Chain.
@@ -59,10 +59,10 @@ public:
     // incoming data from either the network or locally.
 
     /// Handles validation and storing (if validated) a block.
-    void handle_block(std::shared_ptr<Block> block);
+    void handle_block(std::unique_ptr<Block> block);
 
     /// Handles validation and storing (if validated) a transaction.
-    void handle_transaction(std::shared_ptr<Transaction> transaction);
+    void handle_transaction(std::unique_ptr<Transaction> transaction);
 
     // The third section of public methods is getters for data
     // on the chain or metadata about a particular chain that
@@ -75,7 +75,7 @@ public:
     std::unique_ptr<Block> get_block(uint32_t block_hash);
 
     /// Gets some blocks on the active chain in order.
-    std::vector<Block> get_active_chain(uint32_t start, uint32_t end);
+    std::vector<std::unique_ptr<Block>> get_active_chain(uint32_t start, uint32_t end);
 
     /// Gets some block hashes on the active chain in order.
     std::vector<uint32_t> get_active_chain_hashes(uint32_t start, uint32_t end);
@@ -84,7 +84,7 @@ public:
     // the active chain that shouldn't require any traversal.
 
     /// Gets the last block of the active chain.
-    Block get_last_block();
+    std::unique_ptr<Block> get_last_block();
 
     /// Gets the hash of the last block on the active chain.
     uint32_t get_last_block_hash();

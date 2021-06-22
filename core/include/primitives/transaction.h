@@ -12,13 +12,16 @@
 class Transaction {
 public:
     uint8_t version;
-    std::vector<std::shared_ptr<TransactionInput>> transaction_inputs;
-    std::vector<std::shared_ptr<TransactionOutput>> transaction_outputs;
+    std::vector<std::unique_ptr<TransactionInput>> transaction_inputs;
+    std::vector<std::unique_ptr<TransactionOutput>> transaction_outputs;
     uint32_t lock_time;
 
-    Transaction(std::vector<std::shared_ptr<TransactionInput>> transaction_inputs_, std::vector<std::shared_ptr<TransactionOutput>> transaction_outputs_, uint8_t version=0, uint32_t lock_time=0);
+    Transaction(std::vector<std::unique_ptr<TransactionInput>> transaction_inputs_,
+                std::vector<std::unique_ptr<TransactionOutput>> transaction_outputs_,
+                uint8_t version_=0, uint32_t lock_time_=0);
 
-    bool is_coin_base();
+    static std::string serialize(const Transaction& transaction);
+    static std::unique_ptr<Transaction> deserialize(const std::string& serialized_transaction);
 };
 
 #endif //RATH_TRANSACTION_H

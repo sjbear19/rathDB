@@ -38,7 +38,9 @@ else()
 endif()
 
 add_subdirectory(chain_writer)
+add_subdirectory(db)
+add_subdirectory(crypto)
+add_subdirectory(primitives)
 add_subdirectory(block_info_database)
-add_subdirectory(chain)
 add_subdirectory(coin_database)
-
+add_subdirectory(chain)

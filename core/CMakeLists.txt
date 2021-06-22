@@ -73,13 +73,13 @@ file(GLOB_RECURSE BLOCK_INFO_DB_SOURCES src/block_info_database/*.cpp)
 file(GLOB_RECURSE BLOCK_INFO_DB_INCLUDE include/block_info_database/*.h)
 
 
-add_library(chain STATIC ${CHAIN_SOURCES} ${CHAIN_INCLUDE}
+add_library(rathDB STATIC ${CHAIN_SOURCES} ${CHAIN_INCLUDE}
         ${CHAIN_WRITER_SOURCES} ${CHAIN_WRITER_INCLUDE}
         ${COINDB_SOURCES} ${COINDB_INCLUDE}
         ${BLOCK_INFO_DB_SOURCES} ${BLOCK_INFO_DB_INCLUDE})
 
 
-target_include_directories(chain PUBLIC include/chain
+target_include_directories(rathDB PUBLIC include/chain
         include/chain_writer include/coin_database
         include/block_info_database)
-target_link_libraries(chain db primitives crypto)
+target_link_libraries(rathDB db primitives crypto)
