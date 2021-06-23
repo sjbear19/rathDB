@@ -25,6 +25,7 @@ private:
 
     /// Default file extension: used for both Undo and Block files
     static const std::string _file_extension;
+    static const std::string _data_directory;
 
     /// Default filename that block data is stored to.
     static const std::string _block_filename;
