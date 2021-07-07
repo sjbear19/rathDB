@@ -30,3 +30,47 @@ std::string CoinLocator::serialize_from_construct(uint32_t transaction_hash, uin
     return std::to_string(transaction_hash) + "-" +
            std::to_string(output_index);
 }
+
+bool CoinDatabase::validate_block(std::vector<std::shared_ptr<Transaction>> transactions) {
+  for int i = 0; i < transactions.size(); i++ {
+    if !(validate_transaction(transactions[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+bool CoinDatabase::validate_transaction(std::shared_ptr<Transaction> transaction) {
+  std::vector<std::unique_ptr<TransactionInput>> v = transaction.transaction_inputs;
+  for int i = 0; i < v.size(); i++ {
+    std::string s = deserialize(v[i]);
+    if _main_cache.find(s) == nullptr {
+      if _database.find(s) == nullptr {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+void CoinDatabase::store_block(std::vector<std::shared_ptr<Transaction>> transactions) {}
+void CoinDatabase::store_transaction(std::shared_ptr<Transaction> transaction) {}
+bool CoinDatabase::validate_and_store_block(std::vector<std::shared_ptr<Transaction>> transactions) {
+  if validate_block(transactions) {
+    store_block(transactions);
+    return true;
+  }
+  return false;
+}
+bool CoinDatabase::validate_and_store_transaction(std::shared_ptr<Transaction> transaction) {
+  if validate_transaction(transaction) {
+    store_transaction(transaction);
+    return true;
+  }
+  return false;  
+}
+void CoinDatabase::remove_transactions_from_mempool(std::vector<std::shared_ptr<Transaction>> transactions) {}
+void CoinDatabase::store_transactions_to_main_cache(std::vector<std::shared_ptr<Transaction>> transactions) {
+  
+}
+void CoinDatabase::store_transaction_in_mempool(std::shared_ptr<Transaction> transaction) {}
+void CoinDatabase::undo_coins(std::vector<std::shared_ptr<UndoBlock>> undo_blocks) {}
+void CoinDatabase::flush_main_cache() {}
