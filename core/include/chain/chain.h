@@ -64,6 +64,8 @@ public:
     /// Handles validation and storing (if validated) a transaction.
     void handle_transaction(std::unique_ptr<Transaction> transaction);
 
+    UndoBlock Chain::make_undo_block(const Block& newblock);
+
     // The third section of public methods is getters for data
     // on the chain or metadata about a particular chain that
     // will most likely require traversal.
@@ -96,7 +98,7 @@ public:
     // transaction related data.
 
     /// Gets all utxo for a particular public key.
-    std::vector<std::pair<uint32_t, uint8_t>> get_all_utxo(uint32_t public_key);
+    //std::vector<std::pair<uint32_t, uint8_t>> get_all_utxo(uint32_t public_key);
 
     // Copy constructor and copy assignment operator deleted.
     Chain(Chain &&other) = delete;

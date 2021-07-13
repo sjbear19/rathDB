@@ -12,7 +12,7 @@ Chain::Chain() {
 }
 
 //SECTION 2
-void Chain::handle_block(std::shared_ptr<Block> block) {
+void Chain::handle_block(std::unique_ptr<Block> block) {
     /*If the block is being appended to the active chain, validate the block using the coin_database. If the block is validated, update the UTXO and mempool in the coin_database. Validate_and_store_block in coin_databse can be called to accomplish both of these things with one function call. It is intended to validate the block, and store the block if valid. 
 If the block is not being appended to the active chain, validate the block using the coin_database (can call validate_block in coin_database).
 If the block has been validated (no matter if it was being appended to active chain or not), store the block on disk.
@@ -26,7 +26,7 @@ Otherwise, we don’t need to update any fields.
 
     bool returncode;
     bool onactchain;
-    if (block.block_header.previous_block_hash == get_last_block_hash()) {
+    if (block->block_header->previous_block_hash == get_last_block_hash()) {
         onactchain = true;
        returncode = _coin_database->validate_and_store_block(block->get_transactions());
     } else {
@@ -39,38 +39,38 @@ Otherwise, we don’t need to update any fields.
         if (onactchain == true) {
             chainlen = get_active_chain_length() + 1;
         } else {
-            chainlen = _block_info_database.get_block_record(block.block_header.previous_block_hash).height + 1;
+            chainlen = _block_info_database->get_block_record(block->block_header->previous_block_hash)->height + 1;
         }
 
         //make an undo block
-
-        _chain_writer.store_block();
-        _chain_writer.write_block();
-        _chain_writer.write_undo_block();
+        UndoBlock ublock = make_undo_block(*block);
+        _chain_writer->store_block(*block, ublock, chainlen);
 
         if (onactchain == true) {
             _active_chain_length++;
-            _active_chain_last_block = block;
+            _active_chain_last_block = std::move(block);
         } else {
             if (chainlen > get_active_chain_length()) {
-                get_forked_blocks_stack(block.block_header.previous_block_hash);
-                get_undo_blocks_queue();
-                _coin_database->undo_coins();
+                std::vector<std::shared_ptr<Block>> forked_blocks = get_forked_blocks_stack(block->block_header->previous_block_hash);
+                _coin_database->undo_coins(get_undo_blocks_queue());
                 //Then, every forked block needs to be added to the coin_database. This can be done through calling store_block multiple times.
+                for (int i = 0; i < forked_blocks.size(); i++) {
+                    _chain_writer->store_block(*forked_blocks[i], make_undo_block(*forked_blocks[i]), chainlen - i);
+                }
+
             }
         }
     }
 
-
 }
-void Chain::handle_transaction(std::shared_ptr<Transaction> transaction) {
-
+void handle_transaction(std::unique_ptr<Transaction> transaction) {
+    validate_and_store_transaction(transaction);
 }
 
 //SECTION 3
 uint32_t Chain::get_chain_length(uint32_t block_hash) {}
 std::unique_ptr<Block> Chain::get_block(uint32_t block_hash) {
-    std::unique_ptr<BlockRecord> returnblk = _block_info_database.get_block_record(block_hash);
+    std::unique_ptr<BlockRecord> returnblk = _block_info_database->get_block_record(block_hash);
     FileInfo finfo = FileInfo(returnblk->block_file_stored, returnblk->block_offset_start, returnblk->block_offset_end);
     std::string to_deserialize = _chain_writer->read_block(finfo);
     return deserialize(to_deserialize);
@@ -78,15 +78,15 @@ std::unique_ptr<Block> Chain::get_block(uint32_t block_hash) {
 std::vector<Block> Chain::get_active_chain(uint32_t start, uint32_t end) { //fix this
    std::unique_ptr<Block> last_block = get_last_block();
    //iterate back to end
-   for int i = 0; i < (get_active_chain_length() - end); i++ {
-    last_block = get_block(last_block.block_header.previous_block_hash);
+   for (int i = 0; i < (get_active_chain_length() - end); i++) {
+    last_block = get_block(last_block->block_header->previous_block_hash);
    }
 
     //add each block before to vector
    std::vector<Block> v;
-   for int i = 0; i < end - start; i++ {
+   for (int i = 0; i < end - start; i++) {
     v.insert(v.begin(), last_block);
-    last_block = get_block(last_block.block_header.previous_block_hash);
+    last_block = get_block(last_block->block_header->previous_block_hash);
    }
 
    return v;
@@ -94,24 +94,26 @@ std::vector<Block> Chain::get_active_chain(uint32_t start, uint32_t end) { //fix
 std::vector<uint32_t> Chain::get_active_chain_hashes(uint32_t start, uint32_t end) {
     std::unique_ptr<Block> last_block = get_last_block();
    //iterate back to end
-   for int i = 0; i < ((get_active_chain_length() - end) - 1); i++ {
+   for (int i = 0; i < ((get_active_chain_length() - end) - 1); i++) {
     last_block = get_block(last_block.block_header.previous_block_hash);
    }
 
     //add each block before to vector
    std::vector<uint32_t> v;
    v.insert(v.begin(), last_block);
-   for int i = 0; i < ((end - start) - 1); i++ {
-    v.insert(v.begin(), last_block.block_header.previous_block_hash);
-    last_block = get_block(last_block.block_header.previous_block_hash);
+   for (int i = 0; i < ((end - start) - 1); i++) {
+    v.insert(v.begin(), last_block->block_header->previous_block_hash);
+    last_block = get_block(last_block->block_header->previous_block_hash);
    }
 
    return v;
 }
 
 //SECTION 4
-Block Chain::get_last_block() {
-    return this->_active_chain_last_block;
+std::unique_ptr<Block> get_last_block() {
+    std::unique_ptr<Block> returnblk = make_unique<Block>();
+
+    return returnblk;
 }
 uint32_t Chain::get_last_block_hash() {
     std::string lbs = Block::serialize(*get_last_block());
@@ -131,12 +133,12 @@ std::vector<std::shared_ptr<UndoBlock>> Chain::get_undo_blocks_queue(uint32_t br
 
     std::unique_ptr<BlockRecord> last_block = _block_info_database->get_block_record(get_last_block_hash());
 
-    for int i = 0; i < branching_height; i++ {
+    for (int i = 0; i < branching_height; i++) {
         std::unique_ptr<FileInfo> uFI = std::make_unique<FileInfo>(last_block->undo_file_stored, last_block->undo_offset_start, last_block->undo_offset_end);
-        std::unique_ptr<UndoBlock> uBlock = deserialize(_chain_writer->read_undo_block(*uFI));
+        std::unique_ptr<UndoBlock> uBlock = UndoBlock::deserialize(_chain_writer->read_undo_block(*uFI));
         v.push_back(std::move(uBlock));
 
-        last_block = _block_info_database->get_block_record(block_header.previous_block_hash);
+        last_block = _block_info_database->get_block_record(last_block->block_header->previous_block_hash);
     }
 
     return v;
@@ -165,15 +167,22 @@ std::vector<std::shared_ptr<Block>> Chain::get_forked_blocks_stack(uint32_t star
     return block_stack;
     */
 
+    std::vector<std::shared_ptr<Block>> retblocks;
+    uint32_t index = starting_hash;
+
 
 }
 std::unique_ptr<Block> Chain::construct_genesis_block() {
     std::unique_ptr<BlockHeader> blk_header = std::make_unique<BlockHeader>();
 
-    std::unique_ptr<BlockHeader> transaction = std::make_unique<Transaction>();
-    std::std::vector<std::unique_ptr<Transaction>> v;
+    std::unique_ptr<Transaction> transaction = std::make_unique<Transaction>();
+    std::vector<std::unique_ptr<Transaction>> v;
     v.push_back(std::move(transaction));
 
     std::unique_ptr<Block> returnblk = std::make_unique<Block>(std::move(blk_header), std::move(v));
     return  returnblk;
+}
+
+UndoBlock Chain::make_undo_block(const Block& newblock) {
+    return UndoBlock(std::vector(), std::vector());
 }

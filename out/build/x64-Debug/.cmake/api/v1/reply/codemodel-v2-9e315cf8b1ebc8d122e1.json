@@ -1,0 +1,421 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						2
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.17"
+					},
+					"projectIndex" : 0,
+					"source" : "."
+				},
+				{
+					"build" : "core",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.17"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "core",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						6,
+						7,
+						8
+					]
+				},
+				{
+					"build" : "test",
+					"childIndexes" : 
+					[
+						3,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.17"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "test"
+				},
+				{
+					"build" : "googletest-build",
+					"childIndexes" : 
+					[
+						4
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 1,
+					"source" : "out/build/x64-Debug/googletest-src"
+				},
+				{
+					"build" : "googletest-build/googlemock",
+					"childIndexes" : 
+					[
+						5
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 3,
+					"projectIndex" : 2,
+					"source" : "out/build/x64-Debug/googletest-src/googlemock",
+					"targetIndexes" : 
+					[
+						2,
+						3
+					]
+				},
+				{
+					"build" : "googletest-build/googletest",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.12"
+					},
+					"parentIndex" : 4,
+					"projectIndex" : 3,
+					"source" : "out/build/x64-Debug/googletest-src/googletest",
+					"targetIndexes" : 
+					[
+						4,
+						5
+					]
+				},
+				{
+					"build" : "test/chain_writer",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.17"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 0,
+					"source" : "test/chain_writer",
+					"targetIndexes" : 
+					[
+						11
+					]
+				},
+				{
+					"build" : "test/db",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.17"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 0,
+					"source" : "test/db",
+					"targetIndexes" : 
+					[
+						14
+					]
+				},
+				{
+					"build" : "test/crypto",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.17"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 0,
+					"source" : "test/crypto",
+					"targetIndexes" : 
+					[
+						13
+					]
+				},
+				{
+					"build" : "test/primitives",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.17"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 0,
+					"source" : "test/primitives",
+					"targetIndexes" : 
+					[
+						15
+					]
+				},
+				{
+					"build" : "test/block_info_database",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.17"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 0,
+					"source" : "test/block_info_database",
+					"targetIndexes" : 
+					[
+						9
+					]
+				},
+				{
+					"build" : "test/coin_database",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.17"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 0,
+					"source" : "test/coin_database",
+					"targetIndexes" : 
+					[
+						12
+					]
+				},
+				{
+					"build" : "test/chain",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.17"
+					},
+					"parentIndex" : 2,
+					"projectIndex" : 0,
+					"source" : "test/chain",
+					"targetIndexes" : 
+					[
+						10
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						1,
+						2,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12
+					],
+					"name" : "rathDB",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						6,
+						7,
+						8,
+						9,
+						10,
+						11,
+						12,
+						13,
+						14,
+						15
+					]
+				},
+				{
+					"childIndexes" : 
+					[
+						2
+					],
+					"directoryIndexes" : 
+					[
+						3
+					],
+					"name" : "googletest-distribution",
+					"parentIndex" : 0
+				},
+				{
+					"childIndexes" : 
+					[
+						3
+					],
+					"directoryIndexes" : 
+					[
+						4
+					],
+					"name" : "gmock",
+					"parentIndex" : 1,
+					"targetIndexes" : 
+					[
+						2,
+						3
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						5
+					],
+					"name" : "gtest",
+					"parentIndex" : 2,
+					"targetIndexes" : 
+					[
+						4,
+						5
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 1,
+					"id" : "crypto::@57760688d1f824db5d9c",
+					"jsonFile" : "target-crypto-Debug-77d84cef7ce5c046c92d.json",
+					"name" : "crypto",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "db::@57760688d1f824db5d9c",
+					"jsonFile" : "target-db-Debug-7f87b18532127d869082.json",
+					"name" : "db",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "gmock::@645c719b6bb61ab77cfe",
+					"jsonFile" : "target-gmock-Debug-87ab0c50a5124e5a44ee.json",
+					"name" : "gmock",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "gmock_main::@645c719b6bb61ab77cfe",
+					"jsonFile" : "target-gmock_main-Debug-925b42a248dbf402614d.json",
+					"name" : "gmock_main",
+					"projectIndex" : 2
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "gtest::@32fe1c6cd3a65a2fab56",
+					"jsonFile" : "target-gtest-Debug-1e34e154f373e414a4dd.json",
+					"name" : "gtest",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "gtest_main::@32fe1c6cd3a65a2fab56",
+					"jsonFile" : "target-gtest_main-Debug-c570e436e160bba08eed.json",
+					"name" : "gtest_main",
+					"projectIndex" : 3
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "primitives::@57760688d1f824db5d9c",
+					"jsonFile" : "target-primitives-Debug-7cf6986d59d630968a66.json",
+					"name" : "primitives",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "proto::@57760688d1f824db5d9c",
+					"jsonFile" : "target-proto-Debug-51232ac4cf61b0a41d11.json",
+					"name" : "proto",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "rathDB::@57760688d1f824db5d9c",
+					"jsonFile" : "target-rathDB-Debug-1dc5fde2a603d9f6678e.json",
+					"name" : "rathDB",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 10,
+					"id" : "test_block_info_database::@566cc987005b2fbeea9c",
+					"jsonFile" : "target-test_block_info_database-Debug-48b21b8a652dc9b3d68c.json",
+					"name" : "test_block_info_database",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 12,
+					"id" : "test_chain::@75ad122392561d8bed28",
+					"jsonFile" : "target-test_chain-Debug-b480a93e0d2682d7cdd3.json",
+					"name" : "test_chain",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "test_chain_writer::@2350009c55d8ef9c26af",
+					"jsonFile" : "target-test_chain_writer-Debug-0a8b6fd18b21f63f5fdc.json",
+					"name" : "test_chain_writer",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 11,
+					"id" : "test_coin_database::@c32bc734a2b2c42b2af0",
+					"jsonFile" : "target-test_coin_database-Debug-6b1133df9ee63ef28106.json",
+					"name" : "test_coin_database",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "test_crypto::@a9a8da51b660bfce5c02",
+					"jsonFile" : "target-test_crypto-Debug-fe98d86fb3760d9091ce.json",
+					"name" : "test_crypto",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 7,
+					"id" : "test_db::@69c68c9c1e9f48af8d96",
+					"jsonFile" : "target-test_db-Debug-be17f0a59b5d495d7ccf.json",
+					"name" : "test_db",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 9,
+					"id" : "test_primitives::@69bba1950fd45dbbf1fa",
+					"jsonFile" : "target-test_primitives-Debug-f8969477a4e877ca3673.json",
+					"name" : "test_primitives",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/sambe/OneDrive/Documents/rathDB_stencil/out/build/x64-Debug",
+		"source" : "C:/Users/sambe/OneDrive/Documents/rathDB_stencil"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 2
+	}
+}

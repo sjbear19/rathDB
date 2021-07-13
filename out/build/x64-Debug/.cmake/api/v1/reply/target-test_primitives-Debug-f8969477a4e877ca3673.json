@@ -1,0 +1,190 @@
+{
+	"artifacts" : 
+	[
+		{
+			"path" : "test/primitives/test_primitives.exe"
+		},
+		{
+			"path" : "test/primitives/test_primitives.pdb"
+		}
+	],
+	"backtrace" : 2,
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"_add_executable",
+			"add_executable",
+			"target_link_libraries"
+		],
+		"files" : 
+		[
+			"C:/Users/sambe/vcpkg/scripts/buildsystems/vcpkg.cmake",
+			"test/primitives/CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 1
+			},
+			{
+				"command" : 1,
+				"file" : 1,
+				"line" : 10,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 544,
+				"parent" : 1
+			},
+			{
+				"command" : 2,
+				"file" : 1,
+				"line" : 11,
+				"parent" : 0
+			}
+		]
+	},
+	"compileGroups" : 
+	[
+		{
+			"compileCommandFragments" : 
+			[
+				{
+					"fragment" : "/DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -MDd"
+				},
+				{
+					"fragment" : "-std:c++latest"
+				}
+			],
+			"includes" : 
+			[
+				{
+					"backtrace" : 3,
+					"path" : "C:/Users/sambe/OneDrive/Documents/rathDB_stencil/core/include/primitives"
+				},
+				{
+					"backtrace" : 3,
+					"path" : "C:/Users/sambe/OneDrive/Documents/rathDB_stencil/core/include/proto"
+				},
+				{
+					"backtrace" : 3,
+					"path" : "C:/Users/sambe/vcpkg/installed/x64-windows/include"
+				},
+				{
+					"backtrace" : 3,
+					"isSystem" : true,
+					"path" : "C:/Users/sambe/OneDrive/Documents/rathDB_stencil/out/build/x64-Debug/googletest-src/googletest/include"
+				},
+				{
+					"backtrace" : 3,
+					"isSystem" : true,
+					"path" : "C:/Users/sambe/OneDrive/Documents/rathDB_stencil/out/build/x64-Debug/googletest-src/googletest"
+				}
+			],
+			"language" : "CXX",
+			"languageStandard" : 
+			{
+				"backtraces" : 
+				[
+					3
+				],
+				"standard" : "20"
+			},
+			"sourceIndexes" : 
+			[
+				0,
+				1
+			]
+		}
+	],
+	"dependencies" : 
+	[
+		{
+			"backtrace" : 3,
+			"id" : "gtest::@32fe1c6cd3a65a2fab56"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "proto::@57760688d1f824db5d9c"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "primitives::@57760688d1f824db5d9c"
+		}
+	],
+	"id" : "test_primitives::@69bba1950fd45dbbf1fa",
+	"link" : 
+	{
+		"commandFragments" : 
+		[
+			{
+				"fragment" : "/DWIN32 /D_WINDOWS /GR /EHsc /Zi /Ob0 /Od /RTC1 -MDd",
+				"role" : "flags"
+			},
+			{
+				"fragment" : "/machine:x64 /debug /INCREMENTAL /subsystem:console",
+				"role" : "flags"
+			},
+			{
+				"backtrace" : 3,
+				"fragment" : "..\\..\\core\\primitives.lib",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 3,
+				"fragment" : "..\\..\\lib\\gtestd.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "..\\..\\core\\proto.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "C:\\Users\\sambe\\vcpkg\\installed\\x64-windows\\debug\\lib\\libprotobufd.lib",
+				"role" : "libraries"
+			},
+			{
+				"fragment" : "kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib",
+				"role" : "libraries"
+			}
+		],
+		"language" : "CXX"
+	},
+	"name" : "test_primitives",
+	"nameOnDisk" : "test_primitives.exe",
+	"paths" : 
+	{
+		"build" : "test/primitives",
+		"source" : "test/primitives"
+	},
+	"sourceGroups" : 
+	[
+		{
+			"name" : "Source Files",
+			"sourceIndexes" : 
+			[
+				0,
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "test/primitives/main.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 2,
+			"compileGroupIndex" : 0,
+			"path" : "test/primitives/primitives_tests.cpp",
+			"sourceGroupIndex" : 0
+		}
+	],
+	"type" : "EXECUTABLE"
+}
