@@ -44,7 +44,7 @@ private:
     static std::unique_ptr<Block> construct_genesis_block();
 
     /// gets forked blocks on a chain in a stack-like order
-    std::vector<std::shared_ptr<Block>> get_forked_blocks_stack(uint32_t starting_hash);
+    std::vector<std::unique_ptr<Block>> get_forked_blocks_stack(uint32_t starting_hash);
 
     /// gets all undo blocks on main chain to a specific height
     std::vector<std::unique_ptr<UndoBlock>> get_undo_blocks_queue(uint32_t branching_height);

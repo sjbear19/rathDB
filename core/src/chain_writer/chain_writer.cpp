@@ -9,9 +9,10 @@ const uint16_t ChainWriter::_max_undo_file_size = 1000;
 const std::string ChainWriter::_data_directory = "data";
 
 ChainWriter::ChainWriter() {
-
-
-
+    _current_block_file_number = 0;
+    _current_block_offset = 0;
+    _current_undo_file_number = 0;
+    _current_undo_offset = 0;
 }
 std::unique_ptr<BlockRecord> ChainWriter::store_block(const Block& block, const UndoBlock& uBlock, uint32_t height) {
    std::unique_ptr<BlockHeader> bh = std::make_unique<BlockHeader>(block.block_header->version,block.block_header->previous_block_hash,
@@ -72,6 +73,7 @@ std::string ChainWriter::read_block(const FileInfo& block_location) {
 
     char buf[(block_location.end - block_location.start)];
     int fread_output = fread(buf, (block_location.end - block_location.start), 1, file);
+    fclose(file);
     std::string ret = buf;
     return ret;
 }

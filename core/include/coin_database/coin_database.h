@@ -44,17 +44,17 @@ private:
     /// current number of entries in the cache
     uint16_t _main_cache_size;
 
-    /// maps transaciton hash to transaction
+    /// maps transaction hash to transaction
     std::unordered_map<uint32_t, std::unique_ptr<Transaction>> _mempool_cache;
     /// maximum amount of entries in mempool
     const uint16_t _mempool_capacity;
-    /// current amount of entires in mempool
+    /// current amount of entries in mempool
     uint16_t _mempool_size;
 
 public:
     CoinDatabase();
 
-    bool validate_block(const std::vector<std::unique_ptr<Transaction>>& transactions);
+    bool validate_block(std::vector<std::unique_ptr<Transaction>>& transactions);
     bool validate_transaction(const Transaction& transaction);
     void store_block(std::vector<std::unique_ptr<Transaction>> transactions);
     void store_transaction(std::unique_ptr<Transaction> transaction);
