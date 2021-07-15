@@ -59,6 +59,39 @@ std::string Block::serialize(const Block& block) {
     return serialized_block;
 }
 
+std::vector <std::unique_ptr<Transaction>> Block::get_transactions() {
+    std::vector<std::unique_ptr<Transaction>> txs;
+    for (auto & transaction : transactions) {
+        ///Create TransactionOutputs
+        std::vector<std::unique_ptr<TransactionOutput>> txos;
+        for (auto & transaction_output : transaction->transaction_outputs) {
+            std::unique_ptr<TransactionOutput> txo = std::make_unique<TransactionOutput>(
+                    transaction_output->amount,
+                    transaction_output->public_key);
+            txos.push_back(std::move(txo));
+        }
+        ///Create TransactionInputs
+        std::vector<std::unique_ptr<TransactionInput>> txis;
+        for (auto & transaction_input : transaction->transaction_inputs) {
+            std::unique_ptr<TransactionInput> txi = std::make_unique<TransactionInput>(
+                    transaction_input->reference_transaction_hash,
+                    transaction_input->utxo_index,
+                    transaction_input->signature
+            );
+            txis.push_back(std::move(txi));
+        }
+        ///Create Transaction
+        std::unique_ptr<Transaction> tx = std::make_unique<Transaction>(
+                std::move(txis),
+                std::move(txos),
+                transaction->version,
+                transaction->lock_time
+        );
+        txs.push_back(std::move(tx));
+    }
+    return std::move(txs);
+}
+
 std::unique_ptr<Block> Block::deserialize(const std::string& serialized_block) {
     PBlock pblock = PBlock();
     pblock.ParseFromString(serialized_block);

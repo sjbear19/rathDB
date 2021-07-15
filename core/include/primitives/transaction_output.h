@@ -11,6 +11,8 @@
 #define RATH_TRANSACTION_OUTPUT_H
 
 #include <string>
+#include <memory>
+
 
 class TransactionOutput {
 public:

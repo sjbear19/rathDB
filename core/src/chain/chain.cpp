@@ -235,8 +235,8 @@ std::vector<std::unique_ptr<UndoBlock>> Chain::get_undo_blocks_queue(uint32_t br
 }
 std::vector<std::unique_ptr<Block>> Chain::get_forked_blocks_stack(uint32_t starting_hash) {
 
-    std::vector<std::unique_ptr<Block>> block_stack;
-    uint32_t current_block_hash = starting_hash;
+    std::vector<std::unique_ptr<Block>> v;
+    uint32_t current = starting_hash;
     std::unordered_map<uint32_t,bool> main_hashes;
     for (auto k : _last_seven_on_active_chain){
         main_hashes[k] = true;
@@ -244,20 +244,17 @@ std::vector<std::unique_ptr<Block>> Chain::get_forked_blocks_stack(uint32_t star
     bool finished = false;
     while (!finished) {
         std::unique_ptr<BlockRecord> current_block_record = Chain::_block_info_database->get_block_record(
-                current_block_hash);
-        if (main_hashes.contains(current_block_hash)) {
+                current);
+        if (main_hashes.contains(current)) {
             finished = true;
         } else {
-            std::unique_ptr<Block> forked_block = get_block(current_block_hash);
-            block_stack.push_back(std::move(forked_block));
+            std::unique_ptr<Block> forked_block = get_block(current);
+            v.push_back(std::move(forked_block));
         }
-        current_block_hash = current_block_record->block_header->previous_block_hash;
+        current = current_block_record->block_header->previous_block_hash;
     }
-    return block_stack;
+    return v;
 
-
-   /* std::vector<std::unique_ptr<Block>> retblocks;
-    uint32_t index = starting_hash;*/
 
 
 }
