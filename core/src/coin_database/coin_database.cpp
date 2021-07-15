@@ -10,8 +10,7 @@
 #include <coin_database.h>
 #include <rathcrypto.h>
 
-CoinLocator::CoinLocator(
-        uint32_t transaction_hash_, uint8_t output_index_)
+CoinLocator::CoinLocator(uint32_t transaction_hash_, uint8_t output_index_)
         : transaction_hash(transaction_hash_),
           output_index(output_index_) {}
 
@@ -95,21 +94,41 @@ void CoinDatabase::store_transactions_to_main_cache(std::vector<std::unique_ptr<
      then it should be flushed by calling flush_main_cache.
 */
     for (int i = 0; i < transactions.size(); i++) {
-        //remove txo from cache
-        //remove txo from database
-    }
-    for (int i = 0; i < transactions.size(); i++) {
-        //create coin_record
-        std::unique_ptr<CoinRecord> cr = std::make_unique<CoinRecord>(           );
-        _database->put_safely(       );
+        std::string serial = Transaction::serialize(*transactions[i]);
+        uint32_t tx_hash = RathCrypto::hash(serial);
 
+        std::vector<uint32_t> utxos;
+        std::vector<uint32_t> amounts;
+        std::vector<uint32_t> public_keys;
+        //remove txo from cache
         if (_main_cache_size >= _main_cache_capacity) {
             flush_main_cache();
         }
+
+        for (int txi = 0; txi < transactions[i]->transaction_inputs.size(); txi++) {
+            int utxo_index = transactions[i]->transaction_inputs[txi]->utxo_index;
+            if (_main_cache.contains(std::to_string(utxo_index))) {
+                _main_cache.erase(std::to_string(utxo_index));
+            } else {
+                _database->delete_safely(serial);
+                utxos.push_back(utxo_index);
+            }
+        }
+        for (int txo = 0; txo < transactions[i]->transaction_outputs.size(); txo++) {
+/*            this->_main_cache.erase(serial); // is this how this works?
+            this->_database->delete_safely(serial);
+            utxos.push_back(txHash);*/
+            amounts.push_back(transactions[i]->transaction_outputs[txo]->amount);
+            public_keys.push_back(transactions[i]->transaction_outputs[txo]->public_key);
+        }
+        //remove txo from database
+        //create coin_record
+        std::unique_ptr<CoinRecord> cr = std::make_unique<CoinRecord>(transactions[0]->version, utxos, amounts, public_keys);
+        _database->put_safely(       );
+
+
         _main_cache.insert(std::make_pair(       ));
     }
-
-
 }
 void CoinDatabase::store_transaction_in_mempool(std::unique_ptr<Transaction> transaction) {
     if (_mempool_capacity >= _mempool_size) {

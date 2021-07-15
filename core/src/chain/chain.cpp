@@ -24,21 +24,24 @@ If the block was appended to the main chain, then we simply increment _active_ch
 If the block’s height is bigger than the _active_chain_length, it means a fork has surpassed the active chain. To deal with a fork we need to get every forked block on the forked chain until a common ancestor block with the main chain has been reached (get_forked_blocks_stack is intended for this purpose). Afterwards, we need to get every undo block on the active_chain from the last_block to the common ancestor block (get_undo_blocks_queue is intended for this). Now, we need to iterate through the undo blocks, applying each one to the coin_database to “reverse the UTXO”. This could be done through a helper function in coin_database. Then, every forked block needs to be added to the coin_database. This can be done through calling store_block multiple times.
 Otherwise, we don’t need to update any fields.
 */
-
-    bool returncode;
-    bool onactchain;
-    if (block->block_header->previous_block_hash == get_last_block_hash()) {
-        onactchain = true;
-       returncode = _coin_database->validate_and_store_block(block->get_transactions());
-    } else {
-        onactchain = false;
-        std::vector<std::unique_ptr<Transaction>> temp = block->get_transactions();
-       returncode = _coin_database->validate_block(temp);
+    if (block == nullptr) {
+        return;
     }
 
-    if (returncode == true) {
+    bool return_code;
+    bool on_act_chain;
+    if (block->block_header->previous_block_hash == get_last_block_hash()) {
+        on_act_chain = true;
+       return_code = _coin_database->validate_and_store_block(block->get_transactions());
+    } else {
+        on_act_chain = false;
+        std::vector<std::unique_ptr<Transaction>> temp = block->get_transactions();
+       return_code = _coin_database->validate_block(temp);
+    }
+
+    if (return_code == true) {
         uint32_t chainlen;
-        if (onactchain == true) {
+        if (on_act_chain == true) {
             chainlen = get_active_chain_length() + 1;
         } else {
             chainlen = _block_info_database->get_block_record(block->block_header->previous_block_hash)->height + 1;
@@ -48,7 +51,7 @@ Otherwise, we don’t need to update any fields.
         UndoBlock uBlock = make_undo_block(*block);
         _chain_writer->store_block(*block, uBlock, chainlen);
 
-        if (onactchain == true) {
+        if (on_act_chain == true) {
             _active_chain_length++;
             _active_chain_last_block = std::move(block);
         } else {
@@ -66,6 +69,9 @@ Otherwise, we don’t need to update any fields.
 
 }
 void Chain::handle_transaction(std::unique_ptr<Transaction> transaction) {
+    if (transaction == nullptr) {
+        return;
+    }
     _coin_database->validate_and_store_transaction(std::move(transaction));
 }
 
@@ -82,11 +88,25 @@ uint32_t Chain::get_chain_length(uint32_t block_hash) {
 
 std::unique_ptr<Block> Chain::get_block(uint32_t block_hash) {
     std::unique_ptr<BlockRecord> return_block = _block_info_database->get_block_record(block_hash);
+    if (return_block == nullptr) {
+        return nullptr;
+    }
     FileInfo fInfo = FileInfo(return_block->block_file_stored, return_block->block_offset_start, return_block->block_offset_end);
     std::string to_deserialize = _chain_writer->read_block(fInfo);
     return Block::deserialize(to_deserialize);
 }
-std::vector<std::unique_ptr<Block>> Chain::get_active_chain(uint32_t start, uint32_t end) { //fix this
+std::vector<std::unique_ptr<Block>> Chain::get_active_chain(uint32_t start, uint32_t end) {
+    std::vector<std::unique_ptr<Block>> v;
+    if (end < start) {
+        return v;
+    }
+    if (start < 1) {
+        start = 1;
+    }
+    if (end > get_active_chain_length()) {
+        end = get_active_chain_length();
+    }
+
    std::unique_ptr<Block> last_block = get_last_block();
    //iterate back to end
    for (int i = 0; i < (get_active_chain_length() - end); i++) {
@@ -94,10 +114,11 @@ std::vector<std::unique_ptr<Block>> Chain::get_active_chain(uint32_t start, uint
    }
 
     //add each block before to vector
-   std::vector<std::unique_ptr<Block>> v;
+    v.emplace_back(std::move(last_block));
    for (int i = 0; i < end - start; i++) {
+
+       last_block = get_block(last_block->block_header->previous_block_hash);
        v.emplace_back(std::move(last_block));
-    last_block = get_block(last_block->block_header->previous_block_hash);
    }
 
    return v;
@@ -109,7 +130,6 @@ std::vector<uint32_t> Chain::get_active_chain_hashes(uint32_t start, uint32_t en
     for (int i = 0; i < (get_active_chain_length() - end); i++) {
         current_hash = last_block->block_header->previous_block_hash;
         last_block = get_block(last_block->block_header->previous_block_hash);
-
     }
 
     //add each block before to vector
@@ -143,7 +163,9 @@ uint32_t Chain::get_active_chain_length() const {
 std::vector<std::unique_ptr<UndoBlock>> Chain::get_undo_blocks_queue(uint32_t branching_height) { // should change this one up
 
     std::vector<std::unique_ptr<UndoBlock>> v;
-
+    if (branching_height > get_active_chain_length() || branching_height < 1) {
+        return v;
+    }
     std::unique_ptr<BlockRecord> last_block = _block_info_database->get_block_record(get_last_block_hash());
 
     for (int i = 0; i < branching_height; i++) {
@@ -155,10 +177,12 @@ std::vector<std::unique_ptr<UndoBlock>> Chain::get_undo_blocks_queue(uint32_t br
     }
 
     return v;
+
+
 }
 std::vector<std::unique_ptr<Block>> Chain::get_forked_blocks_stack(uint32_t starting_hash) {
 /*
-    std::vector<std::shared_ptr<Block>> block_stack;
+    std::vector<std::unique_ptr<Block>> block_stack;
     uint32_t current_block_hash = starting_hash;
     std::unordered_map<uint32_t,bool> main_hashes;
     for (auto k : _last_seven_on_active_chain){
@@ -179,7 +203,7 @@ std::vector<std::unique_ptr<Block>> Chain::get_forked_blocks_stack(uint32_t star
     return block_stack;
     */
 
-    std::vector<std::shared_ptr<Block>> retblocks;
+    std::vector<std::unique_ptr<Block>> retblocks;
     uint32_t index = starting_hash;
 
 
