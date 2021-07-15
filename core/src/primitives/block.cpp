@@ -9,6 +9,8 @@
 
 #include <block.h>
 
+#include <memory>
+
 Block::Block(
         std::unique_ptr<BlockHeader> block_header_,
         std::vector<std::unique_ptr<Transaction>> transactions_)
@@ -125,6 +127,6 @@ std::unique_ptr<Block> Block::deserialize(const std::string& serialized_block) {
         transactions_.push_back(std::move(tx));
     }
 
-    std::unique_ptr<Block> block = std::unique_ptr<Block>( new Block(std::move(block_header_), std::move(transactions_)));
+    std::unique_ptr<Block> block = std::make_unique<Block>( std::move(block_header_), std::move(transactions_));
     return std::move(block);
 }

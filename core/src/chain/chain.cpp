@@ -95,8 +95,7 @@ Otherwise, we don’t need to update any fields.
 
                 //reset _last_seven_on_active_chain
                 _last_seven_on_active_chain.clear();
-                _last_seven_on_active_chain.push_back(forked_blocks[0]->block_header->previous_block_hash);
-                _last_seven_on_active_chain.push_back(get_last_block_hash());
+                _last_seven_on_active_chain.push_back(RathCrypto::hash(Block::serialize(*block)));
 
                 _coin_database->undo_coins(get_undo_blocks_queue(chainlen));
                 //Then, every forked block needs to be added to the coin_database. This can be done through calling store_block multiple times.
@@ -112,6 +111,9 @@ Otherwise, we don’t need to update any fields.
                     UndoBlock uBlock2 = make_undo_block(std::move(temp2));
                     _chain_writer->store_block(*forked_blocks[i], uBlock2, chainlen - i);
                 }
+
+                _active_chain_length = chainlen;
+                _active_chain_last_block = std::move(block);
             }
         }
     }
@@ -161,14 +163,12 @@ std::vector<std::unique_ptr<Block>> Chain::get_active_chain(uint32_t start, uint
    for (int i = 0; i < (get_active_chain_length() - end); i++) {
     last_block = get_block(last_block->block_header->previous_block_hash);
    }
-
     //add each block before to vector
    for (int i = 0; i <= end - start; i++) {
        std::unique_ptr<Block> next_block = get_block(last_block->block_header->previous_block_hash);
        v.emplace_back(std::move(last_block));
        last_block = std::move(next_block);
    }
-
    return v;
 }
 std::vector<uint32_t> Chain::get_active_chain_hashes(uint32_t start, uint32_t end) {
@@ -209,55 +209,44 @@ uint32_t Chain::get_active_chain_length() const {
     return _active_chain_length;
 }
 
-//SECTION 5
-//std::vector<std::pair<uint32_t, uint8_t>> Chain::get_all_utxo(uint32_t public_key) {}
-
 //PRIVATE METHODS
 std::vector<std::unique_ptr<UndoBlock>> Chain::get_undo_blocks_queue(uint32_t branching_height) { // should change this one up
-
     std::vector<std::unique_ptr<UndoBlock>> v;
     if (branching_height > get_active_chain_length() || branching_height < 1) {
         return v;
     }
     std::unique_ptr<BlockRecord> last_block = _block_info_database->get_block_record(get_last_block_hash());
-
     for (int i = 0; i < branching_height; i++) {
         std::unique_ptr<FileInfo> uFI = std::make_unique<FileInfo>(last_block->undo_file_stored, last_block->undo_offset_start, last_block->undo_offset_end);
         std::unique_ptr<UndoBlock> uBlock = UndoBlock::deserialize(_chain_writer->read_undo_block(*uFI));
         v.push_back(std::move(uBlock));
-
         last_block = _block_info_database->get_block_record(last_block->block_header->previous_block_hash);
     }
-
     return v;
-
-
 }
+
 std::vector<std::unique_ptr<Block>> Chain::get_forked_blocks_stack(uint32_t starting_hash) {
-
-    std::vector<std::unique_ptr<Block>> v;
-    uint32_t current = starting_hash;
-    std::unordered_map<uint32_t,bool> main_hashes;
-    for (auto k : _last_seven_on_active_chain){
-        main_hashes[k] = true;
-    }
-    bool finished = false;
-    while (!finished) {
-        std::unique_ptr<BlockRecord> current_block_record = Chain::_block_info_database->get_block_record(
-                current);
-        if (main_hashes.contains(current)) {
-            finished = true;
-        } else {
-            std::unique_ptr<Block> forked_block = get_block(current);
-            v.push_back(std::move(forked_block));
+    std::vector<uint32_t> hash_v;
+    uint32_t current_hash = starting_hash;
+    bool not_finished = true;
+    while (not_finished) {
+        for (int i = 0; i < _last_seven_on_active_chain.size(); i++) {
+            if (_last_seven_on_active_chain[i] == starting_hash) {
+                not_finished = false;
+            }
         }
-        current = current_block_record->block_header->previous_block_hash;
+        if (not_finished) {
+            hash_v.push_back(current_hash);
+            current_hash = _block_info_database->get_block_record(current_hash)->block_header->previous_block_hash;
+        }
     }
-    return v;
-
-
-
+    std::vector<std::unique_ptr<Block>> block_v;
+    for (int i = 0; i < hash_v.size(); i++) {
+        block_v.push_back(get_block(hash_v[i]));
+    }
+    return block_v;
 }
+
 std::unique_ptr<Block> Chain::construct_genesis_block() {
     std::unique_ptr<BlockHeader> blk_header = std::make_unique<BlockHeader>(1, 0, 0, 0, 0, 0);
     std::vector<std::unique_ptr<TransactionInput>> tInputs;
@@ -271,7 +260,7 @@ std::unique_ptr<Block> Chain::construct_genesis_block() {
     tOutputs.push_back(std::move(to2));
     tOutputs.push_back(std::move(to3));
 
-    std::unique_ptr<Transaction> transaction = std::make_unique<Transaction>(std::move(tInputs), std::move(tOutputs), 0, 0);
+    std::unique_ptr<Transaction> transaction = std::make_unique<Transaction>(std::move(tInputs), std::move(tOutputs), 1, 0);
     std::vector<std::unique_ptr<Transaction>> v;
     v.push_back(std::move(transaction));
 
