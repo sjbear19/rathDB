@@ -80,7 +80,7 @@ std::string ChainWriter::read_block(const FileInfo& block_location) {
 std::string ChainWriter::read_undo_block(const FileInfo& undo_block_location) {
 
     _iobuf* file = fopen((undo_block_location.file_name).c_str(), "a+");
-    int fseek_output = fseek(file, undo_block_location.start, SEEK_SET);
+    fseek(file, undo_block_location.start, SEEK_SET);
 
     char buf[(undo_block_location.end - undo_block_location.start)];
     fread(buf, (undo_block_location.end - undo_block_location.start), 1, file);

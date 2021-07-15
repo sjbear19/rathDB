@@ -31,12 +31,14 @@ std::string CoinLocator::serialize_from_construct(uint32_t transaction_hash, uin
 }
 
 CoinDatabase::CoinDatabase() : _main_cache_capacity(30), _mempool_capacity(50) {
+    printf("in coindatabase constructor");
     _database = std::make_unique<Database>();
     _main_cache_size = 0;
     _mempool_size = 0;
 }
 
 bool CoinDatabase::validate_block(std::vector<std::unique_ptr<Transaction>>& transactions) {
+    printf("in validate_block");
   for (int i = 0; i < transactions.size(); i++) {
     if (!(validate_transaction(*transactions[i]))) {
       return false;
@@ -45,6 +47,7 @@ bool CoinDatabase::validate_block(std::vector<std::unique_ptr<Transaction>>& tra
   return true;
 }
 bool CoinDatabase::validate_transaction(const Transaction& transaction) {
+    printf("in validate_block");
   for (int i = 0; i < transaction.transaction_inputs.size(); i++) {
       std::string s = TransactionInput::serialize(*transaction.transaction_inputs[i]);
       if (_main_cache.find(s) == _main_cache.end()) {
@@ -56,14 +59,16 @@ bool CoinDatabase::validate_transaction(const Transaction& transaction) {
   return true;
 }
 void CoinDatabase::store_block(std::vector<std::unique_ptr<Transaction>> transactions) {
+    printf("in store_block");
     remove_transactions_from_mempool(transactions);
     store_transactions_to_main_cache(std::move(transactions));
 }
 void CoinDatabase::store_transaction(std::unique_ptr<Transaction> transaction) {
+    printf("in store_transaction");
     store_transaction_in_mempool(std::move(transaction));
 }
 bool CoinDatabase::validate_and_store_block(std::vector<std::unique_ptr<Transaction>> transactions) {
-
+    printf("in validate_and_store_block");
   if (validate_block(transactions)) {
     store_block(std::move(transactions));
     return true;
@@ -71,6 +76,7 @@ bool CoinDatabase::validate_and_store_block(std::vector<std::unique_ptr<Transact
   return false;
 }
 bool CoinDatabase::validate_and_store_transaction(std::unique_ptr<Transaction> transaction) {
+    printf("in validate_and_store_transaction");
   if (validate_transaction(*transaction)) {
     store_transaction(std::move(transaction));
     return true;
@@ -78,6 +84,7 @@ bool CoinDatabase::validate_and_store_transaction(std::unique_ptr<Transaction> t
   return false;  
 }
 void CoinDatabase::remove_transactions_from_mempool(const std::vector<std::unique_ptr<Transaction>>& transactions) {
+    printf("in remove_transactions_from_mempool");
     for (int i = 0; i < transactions.size(); i++) {
         uint32_t hash = transactions[i]->transaction_inputs[0]->reference_transaction_hash;
         _mempool_cache.erase(hash);
@@ -85,6 +92,7 @@ void CoinDatabase::remove_transactions_from_mempool(const std::vector<std::uniqu
     }
 }
 void CoinDatabase::store_transactions_to_main_cache(std::vector<std::unique_ptr<Transaction>> transactions) {
+    printf("in store_transactions_to_main_cache");
     /*This stores transactions from a validated block to the main_cache. This should remove any spent TXO from
      the _main_cache. If the UTXO can not be found in the main_cache then it is removed from the _database. Note just
      in these few steps, there are many kinds of optimizations that can be done.
@@ -124,13 +132,14 @@ void CoinDatabase::store_transactions_to_main_cache(std::vector<std::unique_ptr<
         //remove txo from database
         //create coin_record
         std::unique_ptr<CoinRecord> cr = std::make_unique<CoinRecord>(transactions[0]->version, utxos, amounts, public_keys);
-        _database->put_safely(       );
+        //_database->put_safely(1, 1);
 
 
-        _main_cache.insert(std::make_pair(       ));
+        //_main_cache.insert(std::make_pair(1, 1));
     }
 }
 void CoinDatabase::store_transaction_in_mempool(std::unique_ptr<Transaction> transaction) {
+    printf("in store_transaction_in_mempool");
     if (_mempool_capacity >= _mempool_size) {
         uint32_t hash = transaction->transaction_inputs[0]->reference_transaction_hash;
         _mempool_cache.insert(std::make_pair(hash, std::move(transaction)));
@@ -139,10 +148,12 @@ void CoinDatabase::store_transaction_in_mempool(std::unique_ptr<Transaction> tra
     }
 }
 void CoinDatabase::undo_coins(std::vector<std::unique_ptr<UndoBlock>> undo_blocks) {
+    printf("in undo_coins");
 
 
 }
 void CoinDatabase::flush_main_cache() {
+    printf("in flush_main_cache");
     for (auto it = _main_cache.begin(); it != _main_cache.end(); it++) {
         if (it->second->is_spent) {
             _database->delete_safely(it->first);
