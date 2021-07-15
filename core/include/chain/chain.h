@@ -37,6 +37,8 @@ private:
     // The third section of private members keeps track of
     // the managing of transaction data.
 
+    std::vector<uint32_t> _last_seven_on_active_chain;
+
     /// Interface for storing/querying transactions.
     std::unique_ptr<CoinDatabase> _coin_database;
 
@@ -64,7 +66,7 @@ public:
     /// Handles validation and storing (if validated) a transaction.
     void handle_transaction(std::unique_ptr<Transaction> transaction);
 
-    UndoBlock Chain::make_undo_block(const Block& newblock);
+    UndoBlock Chain::make_undo_block(std::unique_ptr<Block> block);
 
     // The third section of public methods is getters for data
     // on the chain or metadata about a particular chain that

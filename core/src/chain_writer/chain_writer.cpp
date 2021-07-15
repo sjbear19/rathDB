@@ -38,7 +38,7 @@ std::unique_ptr<FileInfo> ChainWriter::write_block(std::string serialized_block)
 
     _iobuf* file = fopen(filename, "a+");
     size_t fwrite_output = fwrite(type_convert, strlen(type_convert), 1, file);
-    int fclose_output = fclose(file);
+    fclose(file);
 
     std::unique_ptr<FileInfo> to_return = std::make_unique<FileInfo>(filename, _current_block_offset, _current_block_offset + fwrite_output);
     _current_block_offset = _current_block_offset + fwrite_output;
@@ -59,7 +59,7 @@ std::unique_ptr<FileInfo> ChainWriter::write_undo_block(std::string serialized_b
 
     _iobuf* file = fopen(filename, "a+");
     size_t fwrite_output = fwrite(type_convert, strlen(type_convert), 1, file);
-    int fclose_output = fclose(file);
+    fclose(file);
 
     std::unique_ptr<FileInfo> to_return = std::make_unique<FileInfo>(filename, _current_undo_offset, _current_undo_offset + fwrite_output);
     _current_undo_offset = _current_undo_offset + fwrite_output;
@@ -72,7 +72,7 @@ std::string ChainWriter::read_block(const FileInfo& block_location) {
     int fseek_output = fseek(file, block_location.start, SEEK_SET);
 
     char buf[(block_location.end - block_location.start)];
-    int fread_output = fread(buf, (block_location.end - block_location.start), 1, file);
+    fread(buf, (block_location.end - block_location.start), 1, file);
     fclose(file);
     std::string ret = buf;
     return ret;
@@ -83,7 +83,7 @@ std::string ChainWriter::read_undo_block(const FileInfo& undo_block_location) {
     int fseek_output = fseek(file, undo_block_location.start, SEEK_SET);
 
     char buf[(undo_block_location.end - undo_block_location.start)];
-    int fread_output = fread(buf, (undo_block_location.end - undo_block_location.start), 1, file);
+    fread(buf, (undo_block_location.end - undo_block_location.start), 1, file);
     std::string ret = buf;
     return ret;
 }

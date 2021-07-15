@@ -3,14 +3,30 @@
 
 //SECTION 1
 Chain::Chain() {
-    this->_active_chain_length = 1;
-    this->_active_chain_last_block = construct_genesis_block();
-    this->_block_info_database = nullptr;
-    this->_chain_writer = nullptr;
-    this->_coin_database = nullptr;
+    _active_chain_length = 1;
+    _active_chain_last_block = construct_genesis_block();
+    _block_info_database = std::make_unique<BlockInfoDatabase>();
+    _coin_database = std::make_unique<CoinDatabase>();
+    _chain_writer = std::make_unique<ChainWriter>();
 
+    uint32_t blockHash = RathCrypto::hash(Block::serialize(*_active_chain_last_block));
+    UndoBlock newUndoBlock = make_undo_block(get_last_block());
 
+    std::unique_ptr<BlockRecord> newBlockRecord = _chain_writer->store_block(*_active_chain_last_block, newUndoBlock, 1);
+    _block_info_database->store_block_record(blockHash, *newBlockRecord);
+    _coin_database->store_block(_active_chain_last_block->get_transactions());
 }
+
+UndoBlock Chain::make_undo_block(std::unique_ptr<Block> block) {
+    std::vector<uint32_t> transaction_hashes_;
+    for (int i = 0; i <block->transactions.size(); i++) {
+        transaction_hashes_.push_back (RathCrypto::hash(Transaction::serialize(*block->transactions[1])));
+    }
+    std::vector<std:: unique_ptr<UndoCoinRecord>> undo_coin_records_;
+    UndoBlock retBlock = UndoBlock(std::move(transaction_hashes_), std::move(undo_coin_records_));
+    return retBlock;
+}
+
 
 //SECTION 2
 void Chain::handle_block(std::unique_ptr<Block> block) {
@@ -21,13 +37,18 @@ To do this, first, we will need to get the block’s height in the chain. If the
 Then, we create an undo block for this block. We recommend using a helper function called make_undo_block. After this, we store the block and the undo_block on disk using the chain_writer. Store_block, write_block, and write_undo_block may be helpful for this.
 Now we have to update the fields of the chain object.
 If the block was appended to the main chain, then we simply increment _active_chain_length and set _active_chain_last_block to this block.
-If the block’s height is bigger than the _active_chain_length, it means a fork has surpassed the active chain. To deal with a fork we need to get every forked block on the forked chain until a common ancestor block with the main chain has been reached (get_forked_blocks_stack is intended for this purpose). Afterwards, we need to get every undo block on the active_chain from the last_block to the common ancestor block (get_undo_blocks_queue is intended for this). Now, we need to iterate through the undo blocks, applying each one to the coin_database to “reverse the UTXO”. This could be done through a helper function in coin_database. Then, every forked block needs to be added to the coin_database. This can be done through calling store_block multiple times.
+If the block’s height is bigger than the _active_chain_length, it means a fork has surpassed the active chain. To deal with
+     a fork we need to get every forked block on the forked chain until a common ancestor block with the main chain has
+     been reached (get_forked_blocks_stack is intended for this purpose). Afterwards, we need to get every undo block on
+     the active_chain from the last_block to the common ancestor block (get_undo_blocks_queue is intended for this).
+     Now, we need to iterate through the undo blocks, applying each one to the coin_database to “reverse the UTXO”. This
+     could be done through a helper function in coin_database. Then, every forked block needs to be added to the coin_database.
+     This can be done through calling store_block multiple times.
 Otherwise, we don’t need to update any fields.
 */
     if (block == nullptr) {
         return;
     }
-
     bool return_code;
     bool on_act_chain;
     if (block->block_header->previous_block_hash == get_last_block_hash()) {
@@ -39,9 +60,9 @@ Otherwise, we don’t need to update any fields.
        return_code = _coin_database->validate_block(temp);
     }
 
-    if (return_code == true) {
+    if (return_code) {
         uint32_t chainlen;
-        if (on_act_chain == true) {
+        if (on_act_chain) {
             chainlen = get_active_chain_length() + 1;
         } else {
             chainlen = _block_info_database->get_block_record(block->block_header->previous_block_hash)->height + 1;
@@ -51,9 +72,14 @@ Otherwise, we don’t need to update any fields.
         UndoBlock uBlock = make_undo_block(*block);
         _chain_writer->store_block(*block, uBlock, chainlen);
 
-        if (on_act_chain == true) {
+        if (on_act_chain) {
             _active_chain_length++;
             _active_chain_last_block = std::move(block);
+             if (_last_seven_on_active_chain.size() > 6) {
+                 _last_seven_on_active_chain.erase(_last_seven_on_active_chain.begin());
+             }
+             _last_seven_on_active_chain.push_back(get_last_block_hash());
+
         } else {
             if (chainlen > get_active_chain_length()) {
                 std::vector<std::unique_ptr<Block>> forked_blocks = get_forked_blocks_stack(block->block_header->previous_block_hash);
@@ -114,11 +140,10 @@ std::vector<std::unique_ptr<Block>> Chain::get_active_chain(uint32_t start, uint
    }
 
     //add each block before to vector
-    v.emplace_back(std::move(last_block));
-   for (int i = 0; i < end - start; i++) {
-
-       last_block = get_block(last_block->block_header->previous_block_hash);
+   for (int i = 0; i <= end - start; i++) {
+       std::unique_ptr<Block> next_block = get_block(last_block->block_header->previous_block_hash);
        v.emplace_back(std::move(last_block));
+       last_block = std::move(next_block);
    }
 
    return v;
@@ -181,7 +206,7 @@ std::vector<std::unique_ptr<UndoBlock>> Chain::get_undo_blocks_queue(uint32_t br
 
 }
 std::vector<std::unique_ptr<Block>> Chain::get_forked_blocks_stack(uint32_t starting_hash) {
-/*
+
     std::vector<std::unique_ptr<Block>> block_stack;
     uint32_t current_block_hash = starting_hash;
     std::unordered_map<uint32_t,bool> main_hashes;
@@ -201,16 +226,15 @@ std::vector<std::unique_ptr<Block>> Chain::get_forked_blocks_stack(uint32_t star
         current_block_hash = current_block_record->block_header->previous_block_hash;
     }
     return block_stack;
-    */
 
-    std::vector<std::unique_ptr<Block>> retblocks;
-    uint32_t index = starting_hash;
+
+   /* std::vector<std::unique_ptr<Block>> retblocks;
+    uint32_t index = starting_hash;*/
 
 
 }
 std::unique_ptr<Block> Chain::construct_genesis_block() {
     std::unique_ptr<BlockHeader> blk_header = std::make_unique<BlockHeader>(1, 0, 0, 0, 0, 0);
-
     std::vector<std::unique_ptr<TransactionInput>> tInputs;
     std::vector<std::unique_ptr<TransactionOutput>> tOutputs;
 
@@ -222,7 +246,6 @@ std::unique_ptr<Block> Chain::construct_genesis_block() {
     tOutputs.push_back(std::move(to2));
     tOutputs.push_back(std::move(to3));
 
-
     std::unique_ptr<Transaction> transaction = std::make_unique<Transaction>(std::move(tInputs), std::move(tOutputs), 0, 0);
     std::vector<std::unique_ptr<Transaction>> v;
     v.push_back(std::move(transaction));
@@ -231,8 +254,4 @@ std::unique_ptr<Block> Chain::construct_genesis_block() {
     return  return_block;
 }
 
-UndoBlock Chain::make_undo_block(const Block& new_block) {
 
-
-    return UndoBlock(std::vector(), std::vector());
-}
