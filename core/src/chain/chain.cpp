@@ -53,11 +53,11 @@ Otherwise, we don’t need to update any fields.
     bool on_act_chain;
     if (block->block_header->previous_block_hash == get_last_block_hash()) {
         on_act_chain = true;
-       return_code = _coin_database->validate_and_store_block(block->get_transactions());
+        return_code = _coin_database->validate_and_store_block(block->get_transactions());
     } else {
         on_act_chain = false;
         std::vector<std::unique_ptr<Transaction>> temp = block->get_transactions();
-       return_code = _coin_database->validate_block(temp);
+        return_code = _coin_database->validate_block(temp);
     }
 
     if (return_code) {
@@ -69,7 +69,16 @@ Otherwise, we don’t need to update any fields.
         }
 
         //make an undo block
-        UndoBlock uBlock = make_undo_block(*block);
+        std::unique_ptr<BlockHeader> temp_block_header = std::make_unique<BlockHeader>(
+                block->block_header->version,
+                block->block_header->previous_block_hash,
+                block->block_header->merkle_root,
+                block->block_header->difficulty_target,
+                block->block_header->nonce,
+                block->block_header->timestamp);
+        std::unique_ptr<Block> temp = std::make_unique<Block>(std::move(temp_block_header), block->get_transactions());;
+        UndoBlock uBlock = make_undo_block(std::move(temp));
+
         _chain_writer->store_block(*block, uBlock, chainlen);
 
         if (on_act_chain) {
@@ -83,12 +92,26 @@ Otherwise, we don’t need to update any fields.
         } else {
             if (chainlen > get_active_chain_length()) {
                 std::vector<std::unique_ptr<Block>> forked_blocks = get_forked_blocks_stack(block->block_header->previous_block_hash);
+
+                //reset _last_seven_on_active_chain
+                _last_seven_on_active_chain.clear();
+                _last_seven_on_active_chain.push_back(forked_blocks[0]->block_header->previous_block_hash);
+                _last_seven_on_active_chain.push_back(get_last_block_hash());
+
                 _coin_database->undo_coins(get_undo_blocks_queue(chainlen));
                 //Then, every forked block needs to be added to the coin_database. This can be done through calling store_block multiple times.
                 for (int i = 0; i < forked_blocks.size(); i++) {
-                    _chain_writer->store_block(*forked_blocks[i], make_undo_block(*forked_blocks[i]), chainlen - i);
+                    std::unique_ptr<BlockHeader> temp_block_header2 = std::make_unique<BlockHeader>(
+                            block->block_header->version,
+                            block->block_header->previous_block_hash,
+                            block->block_header->merkle_root,
+                            block->block_header->difficulty_target,
+                            block->block_header->nonce,
+                            block->block_header->timestamp);
+                    std::unique_ptr<Block> temp2 = std::make_unique<Block>(std::move(temp_block_header2), block->get_transactions());;
+                    UndoBlock uBlock2 = make_undo_block(std::move(temp2));
+                    _chain_writer->store_block(*forked_blocks[i], uBlock2, chainlen - i);
                 }
-
             }
         }
     }
@@ -169,9 +192,14 @@ std::vector<uint32_t> Chain::get_active_chain_hashes(uint32_t start, uint32_t en
 
 //SECTION 4
 std::unique_ptr<Block> Chain::get_last_block() {
-    //std::unique_ptr<Block> return_block = make_unique<Block>(_active_chain_last_block->block_header, _active_chain_last_block->get_transactions());
-
-    //return return_block;
+    std::unique_ptr<BlockHeader> block_header = std::make_unique<BlockHeader>(
+            _active_chain_last_block->block_header->version,
+            _active_chain_last_block->block_header->previous_block_hash,
+            _active_chain_last_block->block_header->merkle_root,
+            _active_chain_last_block->block_header->difficulty_target,
+            _active_chain_last_block->block_header->nonce,
+            _active_chain_last_block->block_header->timestamp);
+    return std::make_unique<Block>(std::move(block_header), _active_chain_last_block->get_transactions());
 }
 uint32_t Chain::get_last_block_hash() {
     std::string lbs = Block::serialize(*get_last_block());

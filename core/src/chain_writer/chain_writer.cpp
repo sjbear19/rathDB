@@ -21,7 +21,7 @@ std::unique_ptr<BlockRecord> ChainWriter::store_block(const Block& block, const 
 std::unique_ptr<FileInfo> v1 = write_block(Block::serialize(block));
 std::unique_ptr<FileInfo> v2 = write_undo_block(UndoBlock::serialize(uBlock));
 std::unique_ptr<BlockRecord> retblock = std::make_unique<BlockRecord>(std::move(bh),block.transactions.size(), height, *v1,*v2);
-return retblock;
+return std::move(retblock);
 }
 
 std::unique_ptr<FileInfo> ChainWriter::write_block(std::string serialized_block) {
