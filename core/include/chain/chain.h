@@ -66,7 +66,7 @@ public:
     /// Handles validation and storing (if validated) a transaction.
     void handle_transaction(std::unique_ptr<Transaction> transaction);
 
-    UndoBlock make_undo_block(std::unique_ptr<Block> block);
+    std::unique_ptr<UndoBlock> make_undo_block(std::unique_ptr<Block> block);
 
     // The third section of public methods is getters for data
     // on the chain or metadata about a particular chain that

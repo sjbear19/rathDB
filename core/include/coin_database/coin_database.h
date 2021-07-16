@@ -69,6 +69,10 @@ public:
     std::vector<std::pair<uint32_t, uint8_t>> get_all_utxo(uint32_t public_key);
     void flush_main_cache();
 
+    void undo_blocks(std::vector<std::unique_ptr<Block>> blocks);
+
+    std::unique_ptr<CoinRecord> get_coin_record(std::string hash);
+    std::unique_ptr<TransactionOutput> get_tx_output(uint32_t tx_hash, uint32_t utxo_i);
 };
 
 #endif //RATHDB_STENCIL_COIN_DATABASE_H

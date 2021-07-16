@@ -30,6 +30,16 @@ std::string CoinLocator::serialize_from_construct(uint32_t transaction_hash, uin
            std::to_string(output_index);
 }
 
+std::unique_ptr<CoinRecord> CoinDatabase::get_coin_record(std::string hash) {
+    return CoinRecord::deserialize(_database->get_safely(hash));
+}
+
+std::unique_ptr<TransactionOutput> CoinDatabase::get_tx_output(uint32_t tx_hash, uint32_t utxo_i) {
+    std::string locator = CoinLocator::serialize_from_construct(tx_hash, utxo_i);
+    std::unique_ptr<TransactionOutput> transaction_output = std::make_unique<TransactionOutput>(*_main_cache.at(locator)->transaction_output);
+    return transaction_output;
+}
+
 CoinDatabase::CoinDatabase() : _main_cache_capacity(30), _mempool_capacity(50) {
     printf("in coindatabase constructor");
     _database = std::make_unique<Database>();
@@ -101,7 +111,7 @@ void CoinDatabase::store_transactions_to_main_cache(std::vector<std::unique_ptr<
      For each transaction, we also add the UTXO to the main_cache. If at some point during the process it becomes full,
      then it should be flushed by calling flush_main_cache.
 */
-    for (int i = 0; i < transactions.size(); i++) {
+    /*for (int i = 0; i < transactions.size(); i++) {
         std::string serial = Transaction::serialize(*transactions[i]);
         uint32_t tx_hash = RathCrypto::hash(serial);
 
@@ -123,9 +133,9 @@ void CoinDatabase::store_transactions_to_main_cache(std::vector<std::unique_ptr<
             }
         }
         for (int txo = 0; txo < transactions[i]->transaction_outputs.size(); txo++) {
-/*            this->_main_cache.erase(serial); // is this how this works?
+*//*            this->_main_cache.erase(serial); // is this how this works?
             this->_database->delete_safely(serial);
-            utxos.push_back(txHash);*/
+            utxos.push_back(txHash);*//*
             amounts.push_back(transactions[i]->transaction_outputs[txo]->amount);
             public_keys.push_back(transactions[i]->transaction_outputs[txo]->public_key);
         }
@@ -136,6 +146,57 @@ void CoinDatabase::store_transactions_to_main_cache(std::vector<std::unique_ptr<
 
 
         //_main_cache.insert(std::make_pair(1, 1));
+    }*/
+
+    for (int i = 0; i < transactions.size(); i++) {
+        uint32_t txHash = RathCrypto::hash(Transaction::serialize(*transactions[i]));
+
+        if (this->_main_cache_size >= this->_main_cache_capacity) {
+            printf("flushing cache");
+            this->flush_main_cache();
+        }
+
+        // mark any inputs marked in the main cache as spent
+        // coin is an input
+        // adding to map: []
+        for (int k = 0; k < transactions[i]->transaction_inputs.size(); k++) {
+            std::string serialCL = CoinLocator::serialize_from_construct(transactions[i]->transaction_inputs[k]->reference_transaction_hash,
+                                                                         transactions[i]->transaction_inputs[k]->utxo_index);
+            if (this->_main_cache.contains(serialCL)) {
+                _main_cache[serialCL]->is_spent = true;
+            } else {
+                std::string serialCR = _database->get_safely(std::to_string(transactions[i]->transaction_inputs[k]->reference_transaction_hash));
+                std::unique_ptr<CoinRecord> realCR = CoinRecord::deserialize(serialCR);
+                auto position = std::find(realCR->utxo.cbegin(), realCR->utxo.cend(),transactions[i]->transaction_inputs[k]->utxo_index);
+                if (position != realCR->utxo.cend()) {
+                    uint32_t actualIndex = position - realCR->utxo.cbegin();
+                    realCR->utxo.erase(realCR->utxo.cbegin() + actualIndex);
+                    realCR->amounts.erase(realCR->utxo.cbegin() + actualIndex);
+                    realCR->public_keys.erase(realCR->utxo.cbegin() + actualIndex);
+                }
+                _database->put_safely(std::to_string(transactions[i]->transaction_inputs[k]->reference_transaction_hash),
+                                      CoinRecord::serialize(*realCR));
+            }
+        }
+
+        std::vector<uint32_t> utxos;
+        std::vector<uint32_t> amts;
+        std::vector<uint32_t> pubKeys;
+
+        for (int j = 0; j < transactions[i]->transaction_outputs.size(); j++) {
+            utxos.push_back(j);
+            amts.push_back(transactions[i]->transaction_outputs[j]->amount);
+            pubKeys.push_back(transactions[i]->transaction_outputs[j]->public_key);
+
+            std::string newCL = CoinLocator::serialize_from_construct(txHash, j);
+            _main_cache[newCL] = std::make_unique<Coin>(std::move(transactions[i]->transaction_outputs[j]), false);
+            _main_cache_size++;
+        }
+        std::unique_ptr<CoinRecord> newCR = std::make_unique<CoinRecord>(transactions[i]->version,
+                                                                         utxos,
+                                                                         amts,
+                                                                         pubKeys);
+        this->_database->put_safely(std::to_string(txHash), CoinRecord::serialize(*newCR));
     }
 }
 void CoinDatabase::store_transaction_in_mempool(std::unique_ptr<Transaction> transaction) {
@@ -147,10 +208,50 @@ void CoinDatabase::store_transaction_in_mempool(std::unique_ptr<Transaction> tra
 
     }
 }
+void CoinDatabase::undo_blocks(std::vector<std::unique_ptr<Block>> blocks) {
+    for (const std::unique_ptr<Block> & blk : blocks) {
+        for (int i = 0; i < blk->transactions.size(); i++) {
+            if (_database->get_safely(Transaction::serialize(*blk->transactions[i])) != "") {
+                _database->delete_safely(Transaction::serialize(*blk->transactions[i]));
+            }
+            for (const std::unique_ptr<TransactionOutput> & txo : blk->transactions[i]->transaction_outputs) {
+                std::string newCL = CoinLocator::serialize_from_construct(RathCrypto::hash(Transaction::serialize(*blk->transactions[i])),i);
+                _main_cache.erase(newCL);
+            }
+        }
+    }
+}
+
 void CoinDatabase::undo_coins(std::vector<std::unique_ptr<UndoBlock>> undo_blocks) {
-    printf("in undo_coins");
-
-
+    for (int i = 0; i < undo_blocks.size(); i++) {
+        for (int j = 0; j < undo_blocks[i]->undo_coin_records.size(); i++) {
+//            std::unique_ptr<UndoCoinRecord> newUCR = undo_blocks[i]->undo_coin_records[j]; // TODO: ask why this does not work
+            CoinLocator newCL = CoinLocator(undo_blocks[i]->transaction_hashes[j],
+                                            undo_blocks[i]->undo_coin_records[j]->utxo[0]);
+            if (_main_cache.contains(CoinLocator::serialize(newCL))) {
+                std::unique_ptr<Coin> newCoin = std::move(_main_cache.find(CoinLocator::serialize(newCL))->second);
+                if (newCoin->is_spent) {
+                    newCoin->is_spent = false;
+                }
+            } else if (_database->get_safely(std::to_string(newCL.transaction_hash)) != "") {
+                // check if utxo is missing
+                // if it is add it back
+                auto db_coin_rec = CoinRecord::deserialize(
+                        _database->get_safely(std::to_string(newCL.transaction_hash)));
+                if (db_coin_rec->utxo.empty()) {
+                    db_coin_rec->utxo = undo_blocks[i]->undo_coin_records[j]->utxo;
+                }
+            } else {
+                std::unique_ptr<CoinRecord> newCR = std::make_unique<CoinRecord>(
+                        undo_blocks[i]->undo_coin_records[j]->version,
+                        undo_blocks[i]->undo_coin_records[j]->utxo,
+                        undo_blocks[i]->undo_coin_records[j]->amounts,
+                        undo_blocks[i]->undo_coin_records[j]->public_keys);
+                _database->put_safely(std::to_string(undo_blocks[i]->transaction_hashes[j]),
+                                      CoinRecord::serialize(*newCR));
+            }
+        }
+    }
 }
 void CoinDatabase::flush_main_cache() {
     printf("in flush_main_cache");

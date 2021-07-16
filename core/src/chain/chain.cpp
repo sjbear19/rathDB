@@ -1,6 +1,6 @@
+
 #include <chain.h>
 #include <rathcrypto.h>
-
 //SECTION 1
 Chain::Chain() {
     printf("in chain constructor");
@@ -11,29 +11,67 @@ Chain::Chain() {
     _chain_writer = std::make_unique<ChainWriter>();
 
     uint32_t blockHash = RathCrypto::hash(Block::serialize(*_active_chain_last_block));
-    UndoBlock newUndoBlock = make_undo_block(get_last_block());
+    std::unique_ptr<UndoBlock> newUndoBlock = make_undo_block(get_last_block());
 
-    std::unique_ptr<BlockRecord> newBlockRecord = _chain_writer->store_block(*_active_chain_last_block, newUndoBlock, 1);
+    std::unique_ptr<BlockRecord> newBlockRecord = _chain_writer->store_block(*_active_chain_last_block, *newUndoBlock, 1);
     _block_info_database->store_block_record(blockHash, *newBlockRecord);
     _coin_database->store_block(_active_chain_last_block->get_transactions());
 }
 
-UndoBlock Chain::make_undo_block(std::unique_ptr<Block> block) {
-    printf("in make_undo_block");
+
+std::unique_ptr<UndoBlock> Chain::make_undo_block(std::unique_ptr<Block> block) {
     std::vector<uint32_t> transaction_hashes_;
-    for (int i = 0; i <block->transactions.size(); i++) {
-        transaction_hashes_.push_back (RathCrypto::hash(Transaction::serialize(*block->transactions[1])));
+    std::vector<std::unique_ptr<UndoCoinRecord>> undo_coin_records_;
+    for (int i = 0; i < block->transactions.size(); i++) {
+        transaction_hashes_.push_back(RathCrypto::hash(Transaction::serialize(*block->transactions[i])));
+        std::vector<uint32_t> all_utxo;
+        std::vector<uint32_t> all_amounts;
+        std::vector<uint32_t> all_keys;
+        for (const std::unique_ptr<TransactionInput> & txInput : block->transactions[i]->transaction_inputs) {
+            uint32_t txHash = txInput->reference_transaction_hash;
+            uint32_t utxoIndex = txInput->utxo_index;
+            std::unique_ptr<CoinRecord> coinRec = _coin_database->get_coin_record(std::to_string(txHash));
+            std::unique_ptr<TransactionOutput> newTxo = _coin_database->get_tx_output(txHash, utxoIndex);
+            if (!coinRec && !newTxo) {
+                return nullptr;
+            }
+            uint32_t amount;
+            uint32_t publicKey;
+            if (coinRec != nullptr) {
+                auto locUtxo = std::find((coinRec->utxo).begin(), (coinRec->utxo).end(), utxoIndex);
+                if (locUtxo == coinRec->utxo.end()) {
+                    std::cout << "error null pointer" << std::endl;
+                    return nullptr;
+                }
+                uint32_t utxoLoc = locUtxo - coinRec->utxo.begin();
+                amount = coinRec->amounts.at(utxoLoc);
+                publicKey = coinRec->public_keys.at(utxoLoc);
+            } else if (newTxo != nullptr) {
+                amount = newTxo->amount;
+                publicKey = newTxo->public_key;
+            } else {
+                std::cout << "there was an error" << std::endl;
+                return nullptr;
+            }
+
+            all_utxo.push_back(utxoIndex);
+            all_amounts.push_back(amount);
+            all_keys.push_back(publicKey);
+
+            transaction_hashes_.push_back(txHash);
+        }
+        undo_coin_records_.emplace_back(std::make_unique<UndoCoinRecord>(block->transactions[i]->version, all_utxo, all_amounts,all_keys));
     }
-    std::vector<std:: unique_ptr<UndoCoinRecord>> undo_coin_records_;
-    UndoBlock retBlock = UndoBlock(std::move(transaction_hashes_), std::move(undo_coin_records_));
-    return retBlock;
+
+    return std::make_unique<UndoBlock>(transaction_hashes_, std::move(undo_coin_records_));;
 }
 
 
 //SECTION 2
 void Chain::handle_block(std::unique_ptr<Block> block) {
     printf("in handle_block");
-    /*If the block is being appended to the active chain, validate the block using the coin_database. If the block is validated, update the UTXO and mempool in the coin_database. Validate_and_store_block in coin_databse can be called to accomplish both of these things with one function call. It is intended to validate the block, and store the block if valid. 
+
+/*If the block is being appended to the active chain, validate the block using the coin_database. If the block is validated, update the UTXO and mempool in the coin_database. Validate_and_store_block in coin_databse can be called to accomplish both of these things with one function call. It is intended to validate the block, and store the block if valid.
 If the block is not being appended to the active chain, validate the block using the coin_database (can call validate_block in coin_database).
 If the block has been validated (no matter if it was being appended to active chain or not), store the block on disk.
 To do this, first, we will need to get the block’s height in the chain. If the block is being appended to the active chain, this is easy; we can just access the _active_chain_length field and add 1. However, if it is not being appended to the active chain, we must find the previous block’s height and then add 1 to that. To find the previous block’s height, we first find the hash of the previous block by looking at the block’s header. Then we call get_block_record on the coin_database to get the corresponding block record for the previous block. This will contain the previous block’s height.
@@ -80,9 +118,9 @@ Otherwise, we don’t need to update any fields.
                 block->block_header->nonce,
                 block->block_header->timestamp);
         std::unique_ptr<Block> temp = std::make_unique<Block>(std::move(temp_block_header), block->get_transactions());;
-        UndoBlock uBlock = make_undo_block(std::move(temp));
+        std::unique_ptr<UndoBlock> uBlock = make_undo_block(std::move(temp));
 
-        _chain_writer->store_block(*block, uBlock, chainlen);
+        _chain_writer->store_block(*block, *uBlock, chainlen);
 
         if (on_act_chain) {
             _active_chain_length++;
@@ -94,13 +132,17 @@ Otherwise, we don’t need to update any fields.
 
         } else {
             if (chainlen > get_active_chain_length()) {
-                std::vector<std::unique_ptr<Block>> forked_blocks = get_forked_blocks_stack(block->block_header->previous_block_hash);
+                std::vector<std::unique_ptr<Block>> forked_blocks = get_forked_blocks_stack(
+                        block->block_header->previous_block_hash);
 
                 //reset _last_seven_on_active_chain
                 _last_seven_on_active_chain.clear();
                 _last_seven_on_active_chain.push_back(RathCrypto::hash(Block::serialize(*block)));
 
+
                 _coin_database->undo_coins(get_undo_blocks_queue(chainlen));
+
+
                 //Then, every forked block needs to be added to the coin_database. This can be done through calling store_block multiple times.
                 for (int i = 0; i < forked_blocks.size(); i++) {
                     std::unique_ptr<BlockHeader> temp_block_header2 = std::make_unique<BlockHeader>(
@@ -111,8 +153,8 @@ Otherwise, we don’t need to update any fields.
                             block->block_header->nonce,
                             block->block_header->timestamp);
                     std::unique_ptr<Block> temp2 = std::make_unique<Block>(std::move(temp_block_header2), block->get_transactions());;
-                    UndoBlock uBlock2 = make_undo_block(std::move(temp2));
-                    _chain_writer->store_block(*forked_blocks[i], uBlock2, chainlen - i);
+                    std::unique_ptr<UndoBlock> uBlock2 = make_undo_block(std::move(temp2));
+                    _chain_writer->store_block(*forked_blocks[i], *uBlock2, chainlen - i);
                 }
 
                 _active_chain_length = chainlen;
@@ -120,8 +162,9 @@ Otherwise, we don’t need to update any fields.
             }
         }
     }
-
 }
+
+
 void Chain::handle_transaction(std::unique_ptr<Transaction> transaction) {
     printf("in handle_transaction");
     if (transaction == nullptr) {
@@ -152,6 +195,8 @@ std::unique_ptr<Block> Chain::get_block(uint32_t block_hash) {
     std::string to_deserialize = _chain_writer->read_block(fInfo);
     return Block::deserialize(to_deserialize);
 }
+
+
 std::vector<std::unique_ptr<Block>> Chain::get_active_chain(uint32_t start, uint32_t end) {
     printf("in get_active_chain");
     std::vector<std::unique_ptr<Block>> v;
@@ -281,5 +326,6 @@ std::unique_ptr<Block> Chain::construct_genesis_block() {
     std::unique_ptr<Block> return_block = std::make_unique<Block>(std::move(blk_header), std::move(v));
     return  return_block;
 }
+
 
 
