@@ -39,7 +39,7 @@ std::unique_ptr<FileInfo> ChainWriter::write_block(std::string serialized_block)
     const char* filename = (_data_directory + "/" + _block_filename + "_" + std::to_string(_current_block_file_number) + "." + _file_extension).c_str();
     const char* type_convert = serialized_block.c_str();
 
-    _iobuf* file = fopen(filename, "a+");
+    auto file = fopen(filename, "a+");
     size_t fwrite_output = fwrite(type_convert, strlen(type_convert), 1, file);
     fclose(file);
 
@@ -60,7 +60,7 @@ std::unique_ptr<FileInfo> ChainWriter::write_undo_block(std::string serialized_b
     const char* filename = (_data_directory + "/" + _undo_filename + "_" + std::to_string(_current_undo_file_number) + "." + _file_extension).c_str();
     const char* type_convert = serialized_block.c_str();
 
-    _iobuf* file = fopen(filename, "a+");
+    auto file = fopen(filename, "a+");
     size_t fwrite_output = fwrite(type_convert, strlen(type_convert), 1, file);
     fclose(file);
 

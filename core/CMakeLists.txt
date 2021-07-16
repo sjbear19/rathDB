@@ -20,7 +20,6 @@ target_include_directories(db PUBLIC include/db)
 # Setting up libproto
 
 include(FindProtobuf)
-include(C:/Users/sambe/vcpkg/scripts/buildsystems/vcpkg.cmake)
 find_package(Protobuf REQUIRED)
 include_directories(${Protobuf_INCLUDE_DIR})
 
